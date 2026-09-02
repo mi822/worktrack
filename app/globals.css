@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-canvas: #f3f1ec;
+  --color-surface: #fcfbf8;
+  --color-ink: #1c1917;
+  --color-muted: #6f6a63;
+  --color-line: #e3dfd6;
+  --color-accent: #2f342c;
+  --color-mark: #5c6b56;
+  --color-action: #2b6cb0;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: #d8ddd4;
+  color: var(--color-ink);
+}
+
+@layer components {
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-ink;
+  }
+
+  .page-lede {
+    @apply mt-1.5 max-w-xl text-sm leading-relaxed text-muted;
+  }
+
+  .panel {
+    @apply rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(28,25,23,0.04)];
+  }
+
+  .field-label {
+    @apply flex flex-col gap-1.5 text-[13px] font-medium text-ink;
+  }
+
+  .field-caption {
+    @apply text-[11px] font-medium uppercase tracking-[0.08em] text-muted;
+  }
+
+  .field-input {
+    @apply h-10 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink outline-none transition placeholder:text-stone-400 focus:border-accent/40 focus:ring-2 focus:ring-mark/20;
+  }
+
+  .btn-primary {
+    @apply inline-flex h-10 items-center justify-center rounded-lg bg-action px-4 text-sm font-medium text-white transition hover:bg-[#1e4e8c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/30 disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply inline-flex h-10 items-center justify-center rounded-lg border border-line bg-white px-3.5 text-sm font-medium text-ink transition hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mark/20;
+  }
+
+  .alert-error {
+    @apply rounded-lg border border-red-200/80 bg-red-50/80 px-3 py-2 text-sm text-red-800;
+  }
+
+  .status-pill {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium tracking-wide;
+  }
+}
