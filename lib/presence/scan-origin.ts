@@ -5,7 +5,7 @@ function firstLanIPv4(): string | null {
   const candidates: string[] = [];
   for (const addrs of Object.values(os.networkInterfaces())) {
     for (const addr of addrs ?? []) {
-      if ((addr.family === "IPv4" || addr.family === 4) && !addr.internal) {
+      if ((addr.family === "IPv4" || Number(addr.family) === 4) && !addr.internal) {
         candidates.push(addr.address);
       }
     }
