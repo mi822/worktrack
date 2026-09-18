@@ -1,8 +1,15 @@
 "use server";
 
-import { requireProjectHead, requireTaskAccess } from "@/lib/auth";
+import { notifyUser } from "@/lib/notifications/queries";
+import {
+  requireManagerOrHead,
+  requireProjectHead,
+  requireTaskAccess,
+} from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { parseIdParam, parseTaskInput, workActionError } from "@/lib/work/parse";
+import { canTransition } from "@/lib/work/task-transitions";
+import type { TaskStatus } from "@/lib/work/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -15,6 +22,27 @@ function refreshTask(taskId: number, projectId: number) {
   revalidatePath(`/tasks/${taskId}`);
   revalidatePath("/projects");
   revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/");
+}
+
+async function assertCanReviewProject(projectId: number) {
+  const profile = await requireManagerOrHead();
+  const supabase = await createClient();
+  const { data: project, error } = await supabase
+    .from("projects")
+    .select("id, manager_id, project_head_id")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (error || !project) {
+    return { profile, ok: false as const };
+  }
+
+  const ok =
+    (profile.role === "manager" && project.manager_id === profile.id) ||
+    (profile.role === "project_head" && project.project_head_id === profile.id);
+
+  return { profile, ok };
 }
 
 export async function createTask(formData: FormData) {
@@ -31,6 +59,19 @@ export async function createTask(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id, project_head_id, status")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (!project || project.project_head_id !== profile.id) {
+    fail(path, "You are not allowed to assign tasks on this project.");
+  }
+  if (project.status !== "active") {
+    fail(path, "Tasks can only be added while the project is active.");
+  }
+
   const { data, error } = await supabase
     .from("tasks")
     .insert({
@@ -40,6 +81,7 @@ export async function createTask(formData: FormData) {
       description: parsed.description,
       priority: parsed.priority,
       deadline: parsed.deadline,
+      status: "assigned",
     })
     .select("id")
     .maybeSingle();
@@ -47,6 +89,14 @@ export async function createTask(formData: FormData) {
   if (error || !data) {
     fail(path, workActionError("Unable to create the task.", error?.message));
   }
+
+  await notifyUser({
+    recipientId: parsed.assignee_id,
+    kind: "task_assigned",
+    title: "New task assigned",
+    body: parsed.description,
+    href: `/tasks/${data.id}`,
+  });
 
   refreshTask(Number(data.id), projectId);
   redirect(`/tasks/${data.id}`);
@@ -60,12 +110,27 @@ export async function startTask(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { data: current, error: loadError } = await supabase
+    .from("tasks")
+    .select("id, project_id, status, assignee_id")
+    .eq("id", taskId)
+    .maybeSingle();
+
+  if (loadError || !current || current.assignee_id !== profile.id) {
+    fail(`/tasks/${taskId}`, "That task was not found.");
+  }
+
+  const from = current.status as TaskStatus;
+  if (!canTransition(from, "in_progress")) {
+    fail(`/tasks/${taskId}`, "That status change is not allowed.");
+  }
+
   const { data, error } = await supabase
     .from("tasks")
     .update({ status: "in_progress" })
     .eq("id", taskId)
     .eq("assignee_id", profile.id)
-    .eq("status", "pending")
+    .in("status", ["assigned", "rejected"])
     .select("id, project_id")
     .maybeSingle();
 
@@ -99,13 +164,7 @@ export async function submitTask(formData: FormData) {
     fail(`/tasks/${taskId}`, "That task was not found.");
   }
 
-  const nextStatus =
-    current.status === "rejected"
-      ? "resubmitted"
-      : current.status === "in_progress"
-        ? "submitted"
-        : null;
-  if (!nextStatus) {
+  if (!canTransition(current.status as TaskStatus, "submitted")) {
     fail(`/tasks/${taskId}`, "That status change is not allowed.");
   }
 
@@ -123,9 +182,10 @@ export async function submitTask(formData: FormData) {
 
   const { data, error } = await supabase
     .from("tasks")
-    .update({ status: nextStatus })
+    .update({ status: "submitted" })
     .eq("id", taskId)
     .eq("assignee_id", profile.id)
+    .eq("status", "in_progress")
     .select("id, project_id")
     .maybeSingle();
 
@@ -136,24 +196,110 @@ export async function submitTask(formData: FormData) {
     );
   }
 
+  const { data: project } = await supabase
+    .from("projects")
+    .select("project_head_id, manager_id")
+    .eq("id", data.project_id)
+    .maybeSingle();
+
+  const reviewers = [
+    project?.project_head_id,
+    project?.manager_id,
+  ].filter((id, index, all): id is string => Boolean(id) && all.indexOf(id) === index);
+
+  await Promise.all(
+    reviewers.map((recipientId) =>
+      notifyUser({
+        recipientId,
+        kind: "task_submitted",
+        title: "Task submitted",
+        body: "A task is waiting for review.",
+        href: `/tasks/${taskId}`,
+      }),
+    ),
+  );
+
   refreshTask(taskId, Number(data.project_id));
   redirect(`/tasks/${taskId}`);
 }
 
-export async function approveTask(formData: FormData) {
-  await requireProjectHead();
+export async function startReviewTask(formData: FormData) {
   const taskId = parseIdParam(String(formData.get("task_id") ?? ""));
   if (!taskId) {
     fail("/projects", "That task was not found.");
   }
 
   const supabase = await createClient();
+  const { data: current, error: loadError } = await supabase
+    .from("tasks")
+    .select("id, project_id, status")
+    .eq("id", taskId)
+    .maybeSingle();
+
+  if (loadError || !current) {
+    fail(`/tasks/${taskId}`, "That task was not found.");
+  }
+
+  const review = await assertCanReviewProject(Number(current.project_id));
+  if (!review.ok) {
+    fail(`/tasks/${taskId}`, "You are not allowed to review this task.");
+  }
+
+  if (!canTransition(current.status as TaskStatus, "under_review")) {
+    fail(`/tasks/${taskId}`, "That status change is not allowed.");
+  }
+
+  const { data, error } = await supabase
+    .from("tasks")
+    .update({ status: "under_review" })
+    .eq("id", taskId)
+    .eq("status", "submitted")
+    .select("id, project_id")
+    .maybeSingle();
+
+  if (error || !data) {
+    fail(
+      `/tasks/${taskId}`,
+      workActionError("Unable to start review.", error?.message),
+    );
+  }
+
+  refreshTask(taskId, Number(data.project_id));
+  redirect(`/tasks/${taskId}`);
+}
+
+export async function approveTask(formData: FormData) {
+  const taskId = parseIdParam(String(formData.get("task_id") ?? ""));
+  if (!taskId) {
+    fail("/projects", "That task was not found.");
+  }
+
+  const supabase = await createClient();
+  const { data: current, error: loadError } = await supabase
+    .from("tasks")
+    .select("id, project_id, status")
+    .eq("id", taskId)
+    .maybeSingle();
+
+  if (loadError || !current) {
+    fail(`/tasks/${taskId}`, "That task was not found.");
+  }
+
+  const review = await assertCanReviewProject(Number(current.project_id));
+  if (!review.ok) {
+    fail(`/tasks/${taskId}`, "You are not allowed to approve this task.");
+  }
+
+  if (!canTransition(current.status as TaskStatus, "approved")) {
+    fail(`/tasks/${taskId}`, "That status change is not allowed.");
+  }
+
   const { data, error } = await supabase
     .from("tasks")
     .update({ status: "approved" })
     .eq("id", taskId)
-    .in("status", ["submitted", "resubmitted"])
-    .select("id, project_id")
+    .in("status", ["submitted", "under_review"])
+    .select("id, project_id, assignee_id, description")
     .maybeSingle();
 
   if (error || !data) {
@@ -163,12 +309,19 @@ export async function approveTask(formData: FormData) {
     );
   }
 
+  await notifyUser({
+    recipientId: data.assignee_id,
+    kind: "task_approved",
+    title: "Task approved",
+    body: data.description,
+    href: `/tasks/${taskId}`,
+  });
+
   refreshTask(taskId, Number(data.project_id));
   redirect(`/tasks/${taskId}`);
 }
 
 export async function rejectTask(formData: FormData) {
-  const profile = await requireProjectHead();
   const taskId = parseIdParam(String(formData.get("task_id") ?? ""));
   if (!taskId) {
     fail("/projects", "That task was not found.");
@@ -180,33 +333,52 @@ export async function rejectTask(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error: feedbackError } = await supabase.from("task_feedback").insert({
-    task_id: taskId,
-    reviewer_id: profile.id,
-    reason,
-  });
-  if (feedbackError) {
-    fail(
-      `/tasks/${taskId}`,
-      workActionError("Unable to reject the task.", feedbackError.message),
-    );
-  }
-
-  const { data, error } = await supabase
+  const { data: current, error: loadError } = await supabase
     .from("tasks")
-    .update({ status: "rejected" })
+    .select("id, project_id, status, assignee_id, description")
     .eq("id", taskId)
-    .in("status", ["submitted", "resubmitted"])
-    .select("id, project_id")
     .maybeSingle();
 
-  if (error || !data) {
+  if (loadError || !current) {
+    fail(`/tasks/${taskId}`, "That task was not found.");
+  }
+
+  const review = await assertCanReviewProject(Number(current.project_id));
+  if (!review.ok) {
+    fail(`/tasks/${taskId}`, "You are not allowed to reject this task.");
+  }
+
+  if (
+    current.status !== "submitted" &&
+    current.status !== "under_review"
+  ) {
+    fail(`/tasks/${taskId}`, "That status change is not allowed.");
+  }
+
+  const { data: rpcData, error: rpcError } = await supabase.rpc("reject_task", {
+    p_task_id: taskId,
+    p_reason: reason,
+  });
+
+  const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+  if (rpcError || !row?.ok) {
     fail(
       `/tasks/${taskId}`,
-      workActionError("Unable to reject the task.", error?.message),
+      workActionError(
+        "Unable to reject the task.",
+        (row?.code as string | undefined) ?? rpcError?.message,
+      ),
     );
   }
 
-  refreshTask(taskId, Number(data.project_id));
+  await notifyUser({
+    recipientId: current.assignee_id,
+    kind: "task_rejected",
+    title: "Task rejected",
+    body: reason,
+    href: `/tasks/${taskId}`,
+  });
+
+  refreshTask(taskId, Number(current.project_id));
   redirect(`/tasks/${taskId}`);
 }

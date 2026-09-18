@@ -1,5 +1,6 @@
 import {
   attendancePercent,
+  attentionTasks,
   expectedScannerCount,
   mergeTaskStatusCounts,
   SCANNER_ROLES,
@@ -18,7 +19,11 @@ import {
   getTodayInternLog,
   listRelevantInternLogs,
 } from "@/lib/logs/queries";
-import { currentWorkDate } from "@/lib/logs/work-date";
+import {
+  calendarDateInZone,
+  currentWorkDate,
+  FALLBACK_WORK_TIMEZONE,
+} from "@/lib/logs/work-date";
 import { getMyPresenceToday } from "@/lib/presence/presence-actions";
 import { getWorkSchedule } from "@/lib/presence/schedule";
 import {
@@ -28,18 +33,23 @@ import {
   requireManager,
   requireProjectHead,
 } from "@/lib/auth";
+import { fillWeek, lastSevenDates } from "@/lib/dashboards/week";
 import { APP_ROLES, isAppRole } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import {
   listAssignedTasks,
   listFeedbackForAssignee,
   listProjects,
+  listTasksForProjects,
 } from "@/lib/work/queries";
 import {
   emptyTaskStatusCounts,
   isTaskStatus,
   type TaskStatus,
 } from "@/lib/work/types";
+import { averageTeamScore, getPerformanceSnapshot } from "@/lib/performance/queries";
+import { getEngagementOverview } from "@/lib/surveys/queries";
+import { getTimesheetRange } from "@/lib/timesheet/queries";
 
 function emptyRoleCount(): RoleCount {
   return {
@@ -64,20 +74,21 @@ function countsFromTasks(
 }
 
 export async function getAdminDashboard(): Promise<AdminDashboard> {
-  await requireAdmin();
+  const profile = await requireAdmin();
   const supabase = await createClient();
-  const [{ date }, schedule, projects] = await Promise.all([
-    currentWorkDate(),
-    getWorkSchedule(),
-    listProjects(),
-  ]);
+  const schedule = await getWorkSchedule();
+  const date = calendarDateInZone(schedule?.timezone || FALLBACK_WORK_TIMEZONE);
 
+  const weekStart = lastSevenDates(date)[0] ?? date;
   const [
+    projects,
     { data: profiles },
     { data: presenceRows },
     { data: summaryRows },
     { data: internLogRows },
+    { data: weekRows },
   ] = await Promise.all([
+    listProjects(),
     supabase.from("profiles").select("id, role, is_active"),
     supabase.from("presence").select("user_id, status").eq("work_date", date),
     supabase
@@ -85,6 +96,11 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
       .select("user_id")
       .eq("work_date", date),
     supabase.from("intern_learning_logs").select("id, work_date"),
+    supabase
+      .from("presence")
+      .select("work_date, status")
+      .gte("work_date", weekStart)
+      .lte("work_date", date),
   ]);
 
   const usersByRole = emptyRoleCount();
@@ -133,6 +149,11 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     (row) => row.work_date === date,
   ).length;
 
+  const [avgPerformance, engagement] = await Promise.all([
+    averageTeamScore(profile),
+    getEngagementOverview(),
+  ]);
+
   return {
     workDate: date,
     userTotal: APP_ROLES.reduce((sum, role) => sum + usersByRole[role], 0),
@@ -156,27 +177,44 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     internLogTotal: (internLogRows ?? []).length,
     internLogsToday,
     internCount,
+    week: fillWeek(date, weekRows ?? []),
+    avgPerformance,
+    engagementAvgRating: engagement.avgRating,
+    surveyResponseRate: engagement.responseRate,
   };
 }
 
 export async function getManagerDashboard(): Promise<ManagerDashboard> {
-  await requireManager();
+  const profile = await requireManager();
   const [{ date }, projects] = await Promise.all([
     currentWorkDate(),
     listProjects(),
   ]);
   const tasksByStatus = mergeTaskStatusCounts(projects);
+  const projectTasks = await listTasksForProjects(projects.map((project) => project.id));
+  const [team, teamAvgPerformance] = await Promise.all([
+    teamPresenceForTasks(
+      date,
+      projectTasks.map((task) => task.assignee_id),
+    ),
+    averageTeamScore(profile),
+  ]);
   return {
     workDate: date,
     projects,
     projectCounts: summarizeProjects(projects, date),
     tasksByStatus,
     taskTotal: taskTotal(tasksByStatus),
+    attention: attentionTasks(projectTasks, date),
+    teamPresent: team.present,
+    teamLate: team.late,
+    teamAbsent: team.absent,
+    teamAvgPerformance,
   };
 }
 
 export async function getHeadDashboard(): Promise<HeadDashboard> {
-  await requireProjectHead();
+  const profile = await requireProjectHead();
   const supabase = await createClient();
   const [{ date }, projects, internLogs] = await Promise.all([
     currentWorkDate(),
@@ -186,44 +224,43 @@ export async function getHeadDashboard(): Promise<HeadDashboard> {
 
   const tasksByStatus = mergeTaskStatusCounts(projects);
   const projectIds = projects.map((project) => project.id);
+  const projectTasks = await listTasksForProjects(projectIds);
   let employeeTaskTotal = 0;
   let internTaskTotal = 0;
   let employeeApproved = 0;
   let internApproved = 0;
 
-  if (projectIds.length > 0) {
-    const { data: taskRows } = await supabase
-      .from("tasks")
-      .select("assignee_id, status")
-      .in("project_id", projectIds);
-    const assigneeIds = [
-      ...new Set((taskRows ?? []).map((row) => row.assignee_id)),
-    ];
-    const roles = new Map<string, string>();
-    if (assigneeIds.length > 0) {
-      const { data: people } = await supabase
-        .from("profiles")
-        .select("id, role")
-        .in("id", assigneeIds);
-      for (const person of people ?? []) {
-        roles.set(person.id, person.role);
-      }
+  const assigneeIds = [...new Set(projectTasks.map((task) => task.assignee_id))];
+  const roles = new Map<string, string>();
+  if (assigneeIds.length > 0) {
+    const { data: people } = await supabase
+      .from("profiles")
+      .select("id, role")
+      .in("id", assigneeIds);
+    for (const person of people ?? []) {
+      roles.set(person.id, person.role);
     }
-    for (const row of taskRows ?? []) {
-      const role = roles.get(row.assignee_id);
-      if (role === "employee") {
-        employeeTaskTotal += 1;
-        if (row.status === "approved") {
-          employeeApproved += 1;
-        }
-      } else if (role === "intern") {
-        internTaskTotal += 1;
-        if (row.status === "approved") {
-          internApproved += 1;
-        }
+  }
+  for (const row of projectTasks) {
+    const role = roles.get(row.assignee_id);
+    if (role === "employee") {
+      employeeTaskTotal += 1;
+      if (row.status === "approved") {
+        employeeApproved += 1;
+      }
+    } else if (role === "intern") {
+      internTaskTotal += 1;
+      if (row.status === "approved") {
+        internApproved += 1;
       }
     }
   }
+
+  const [team, teamAvgPerformance, engagement] = await Promise.all([
+    teamPresenceForTasks(date, assigneeIds),
+    averageTeamScore(profile),
+    getEngagementOverview(),
+  ]);
 
   return {
     workDate: date,
@@ -231,7 +268,10 @@ export async function getHeadDashboard(): Promise<HeadDashboard> {
     projectCounts: summarizeProjects(projects, date),
     tasksByStatus,
     taskTotal: taskTotal(tasksByStatus),
-    pendingReviews: tasksByStatus.submitted + tasksByStatus.resubmitted,
+    pendingReviews: tasksByStatus.submitted + tasksByStatus.under_review,
+    overdueTasks: projectTasks.filter(
+      (task) => task.deadline < date && task.status !== "approved",
+    ).length,
     approved: tasksByStatus.approved,
     rejected: tasksByStatus.rejected,
     employeeTaskTotal,
@@ -239,6 +279,45 @@ export async function getHeadDashboard(): Promise<HeadDashboard> {
     employeeApproved,
     internApproved,
     internLogs,
+    attention: attentionTasks(projectTasks, date),
+    teamPresent: team.present,
+    teamLate: team.late,
+    teamAbsent: team.absent,
+    teamAvgPerformance,
+    engagementAvgRating: engagement.avgRating,
+    surveyResponseRate: engagement.responseRate,
+  };
+}
+
+async function teamPresenceForTasks(
+  workDate: string,
+  assigneeIds: string[],
+): Promise<{ present: number; late: number; absent: number }> {
+  const unique = [...new Set(assigneeIds)];
+  if (unique.length === 0) {
+    return { present: 0, late: 0, absent: 0 };
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("presence")
+    .select("user_id, status")
+    .eq("work_date", workDate)
+    .in("user_id", unique);
+  let present = 0;
+  let late = 0;
+  const seen = new Set<string>();
+  for (const row of data ?? []) {
+    seen.add(row.user_id);
+    if (row.status === "present") {
+      present += 1;
+    } else if (row.status === "late") {
+      late += 1;
+    }
+  }
+  return {
+    present,
+    late,
+    absent: Math.max(0, unique.length - seen.size),
   };
 }
 
@@ -253,12 +332,29 @@ function presenceStatus(
 
 export async function getEmployeeDashboard(): Promise<WorkerDashboard> {
   const profile = await requireEmployee();
-  const { date } = await currentWorkDate();
-  const [presence, tasks, feedback, summary] = await Promise.all([
+  const supabase = await createClient();
+  const [workDate, presence, tasks, feedback] = await Promise.all([
+    currentWorkDate(),
     getMyPresenceToday(),
     listAssignedTasks(profile.id),
     listFeedbackForAssignee(profile.id),
+  ]);
+  const date = workDate.date;
+  const weekStart = lastSevenDates(date)[0] ?? date;
+  const [summary, weekPresence, snapshot, todayHours] = await Promise.all([
     getTodayEmployeeSummary(profile.id, date),
+    supabase
+      .from("presence")
+      .select("work_date, status")
+      .eq("user_id", profile.id)
+      .gte("work_date", weekStart)
+      .lte("work_date", date),
+    getPerformanceSnapshot({
+      id: profile.id,
+      full_name: profile.full_name,
+      role: "employee",
+    }),
+    getTimesheetRange(profile.id, date, date),
   ]);
 
   return {
@@ -271,17 +367,39 @@ export async function getEmployeeDashboard(): Promise<WorkerDashboard> {
     tasksByStatus: countsFromTasks(tasks),
     feedback,
     dailyWriteSubmitted: Boolean(summary),
+    week: fillWeek(date, weekPresence.data ?? []),
+    attendancePercent: snapshot
+      ? Math.round(snapshot.attendance * 1000) / 10
+      : null,
+    hoursToday: todayHours[0]?.actualHours ?? null,
   };
 }
 
 export async function getInternDashboard(): Promise<WorkerDashboard> {
   const profile = await requireIntern();
-  const { date } = await currentWorkDate();
-  const [presence, tasks, feedback, log] = await Promise.all([
+  const supabase = await createClient();
+  const [workDate, presence, tasks, feedback] = await Promise.all([
+    currentWorkDate(),
     getMyPresenceToday(),
     listAssignedTasks(profile.id),
     listFeedbackForAssignee(profile.id),
+  ]);
+  const date = workDate.date;
+  const weekStart = lastSevenDates(date)[0] ?? date;
+  const [log, weekPresence, snapshot, todayHours] = await Promise.all([
     getTodayInternLog(profile.id, date),
+    supabase
+      .from("presence")
+      .select("work_date, status")
+      .eq("user_id", profile.id)
+      .gte("work_date", weekStart)
+      .lte("work_date", date),
+    getPerformanceSnapshot({
+      id: profile.id,
+      full_name: profile.full_name,
+      role: "intern",
+    }),
+    getTimesheetRange(profile.id, date, date),
   ]);
 
   return {
@@ -294,5 +412,10 @@ export async function getInternDashboard(): Promise<WorkerDashboard> {
     tasksByStatus: countsFromTasks(tasks),
     feedback,
     dailyWriteSubmitted: Boolean(log),
+    week: fillWeek(date, weekPresence.data ?? []),
+    attendancePercent: snapshot
+      ? Math.round(snapshot.attendance * 1000) / 10
+      : null,
+    hoursToday: todayHours[0]?.actualHours ?? null,
   };
 }

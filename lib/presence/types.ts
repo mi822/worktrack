@@ -74,6 +74,17 @@ export type PresenceRow = {
   work_date: string;
   scanned_at: string;
   status: PresenceStatus;
-  qr_code_id: number;
+  qr_code_id: number | null;
   full_name: string;
+  role: string;
 };
+
+export type AttendanceDayRecord = {
+  work_date: string;
+  activated_at: string;
+  closed_at: string | null;
+};
+
+export type {
+  AttendanceDayKind,
+} from "@/lib/presence/attendance-pure";

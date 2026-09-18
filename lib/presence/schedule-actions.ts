@@ -32,6 +32,6 @@ export async function saveWorkSchedule(formData: FormData) {
   }
 
   revalidatePath("/admin/hours");
-  revalidatePath("/scan");
+  revalidatePath("/");
   redirect("/admin/hours?saved=1");
 }

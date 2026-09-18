@@ -1,48 +1,17 @@
 "use server";
 
-import { requireAdmin, requireProfile } from "@/lib/auth";
+import { requireProfile, requireScanner } from "@/lib/auth";
 import { messageForPresenceCode } from "@/lib/presence/messages";
+import { isLiveQr } from "@/lib/presence/qr-live";
 import { tokenFromScanPayload } from "@/lib/presence/scan-payload";
 import { getWorkSchedule } from "@/lib/presence/schedule";
 import { workingDateInZone } from "@/lib/presence/schedule-input";
-import type { PresenceRow } from "@/lib/presence/types";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function listPresenceRecords(): Promise<PresenceRow[]> {
-  await requireAdmin();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("presence")
-    .select("id, user_id, work_date, scanned_at, status, qr_code_id")
-    .order("scanned_at", { ascending: false });
+const NO_ACTIVE_QR =
+  "Today's presence QR code has not been generated yet. Please contact the administrator.";
 
-  if (error || !data) {
-    return [];
-  }
-
-  const userIds = [...new Set(data.map((row) => row.user_id))];
-  const names = new Map<string, string>();
-  if (userIds.length > 0) {
-    const { data: people } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .in("id", userIds);
-    for (const person of people ?? []) {
-      names.set(person.id, person.full_name);
-    }
-  }
-
-  return data.map((row) => ({
-    id: row.id,
-    user_id: row.user_id,
-    work_date: row.work_date,
-    scanned_at: row.scanned_at,
-    status: row.status,
-    qr_code_id: row.qr_code_id,
-    full_name: names.get(row.user_id) ?? "Unknown",
-  }));
-}
 
 export async function getMyPresenceToday() {
   const profile = await requireProfile();
@@ -74,8 +43,18 @@ export async function getMyPresenceToday() {
 export async function recordPresenceScan(token: string) {
   const profile = await requireProfile();
   if (profile.role === "admin") {
-    return { error: messageForPresenceCode("admin_cannot_scan"), recorded: false };
+    return {
+      error: messageForPresenceCode("admin_cannot_scan"),
+      recorded: false as const,
+      alreadyRecorded: false as const,
+      fullName: profile.full_name,
+    };
   }
+
+  const schedule = await getWorkSchedule();
+  const workDate = schedule
+    ? workingDateInZone(schedule.timezone)
+    : null;
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("record_presence", {
@@ -83,21 +62,94 @@ export async function recordPresenceScan(token: string) {
   });
 
   if (error) {
-    return { error: "Unable to record presence.", recorded: false };
+    return {
+      error: "Unable to record presence.",
+      recorded: false as const,
+      alreadyRecorded: false as const,
+      fullName: profile.full_name,
+    };
   }
 
   const row = Array.isArray(data) ? data[0] : data;
   const code = row?.code as string | undefined;
+  const scannedAt = new Date().toISOString();
+
   if (row?.ok) {
     revalidatePath("/scan");
     revalidatePath("/");
     revalidatePath("/admin/attendance");
-    return { error: null, recorded: true, status: row.status as string };
+    revalidatePath("/attendance");
+    return {
+      error: null,
+      recorded: true as const,
+      alreadyRecorded: false as const,
+      status: row.status as string,
+      fullName: profile.full_name,
+      workDate,
+      scannedAt,
+    };
+  }
+
+  if (code === "already_recorded") {
+    const existing = workDate
+      ? await supabase
+          .from("presence")
+          .select("status, scanned_at, work_date")
+          .eq("user_id", profile.id)
+          .eq("work_date", workDate)
+          .maybeSingle()
+      : { data: null };
+
+    return {
+      error: messageForPresenceCode(code),
+      recorded: false as const,
+      alreadyRecorded: true as const,
+      status: existing.data?.status ?? null,
+      fullName: profile.full_name,
+      workDate: existing.data?.work_date ?? workDate,
+      scannedAt: existing.data?.scanned_at ?? null,
+    };
   }
 
   return {
     error: messageForPresenceCode(code ?? null),
-    recorded: false,
-    alreadyRecorded: code === "already_recorded",
+    recorded: false as const,
+    alreadyRecorded: false as const,
+    fullName: profile.full_name,
   };
+}
+
+export async function autoRecordActivePresence() {
+  const profile = await requireScanner();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("qr_codes")
+    .select("token, valid_until, is_active")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (error) {
+    return {
+      error: "Unable to read today's presence QR code.",
+      recorded: false as const,
+      alreadyRecorded: false as const,
+      fullName: profile.full_name,
+    };
+  }
+
+  const live = (data ?? []).find((code) => isLiveQr(code));
+  const token = live?.token ?? null;
+
+  if (!token) {
+    return {
+      error: NO_ACTIVE_QR,
+      recorded: false as const,
+      alreadyRecorded: false as const,
+      fullName: profile.full_name,
+    };
+  }
+
+  return recordPresenceScan(token);
 }

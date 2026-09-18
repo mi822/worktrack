@@ -20,6 +20,12 @@ export type NavItem = { href: string; label: string };
 
 export function navForRole(role: AppRole): NavItem[] {
   const home = { href: "/", label: "Home" };
+  const shared = [
+    { href: "/timesheet", label: "Timesheet" },
+    { href: "/surveys", label: "Surveys" },
+    { href: "/documents", label: "Documents" },
+  ];
+  const performance = { href: "/performance", label: "Performance" };
   if (role === "admin") {
     return [
       home,
@@ -27,36 +33,53 @@ export function navForRole(role: AppRole): NavItem[] {
       { href: "/admin/hours", label: "Hours" },
       { href: "/admin/qr", label: "QR" },
       { href: "/admin/attendance", label: "Attendance" },
+      performance,
+      ...shared,
     ];
   }
 
-  const scan = { href: "/scan", label: "Scan" };
+  const scan = { href: "/scan", label: "Presence" };
+  const attendance = { href: "/attendance", label: "Attendance" };
   if (role === "manager") {
-    return [home, scan, { href: "/projects", label: "Projects" }];
+    return [
+      home,
+      scan,
+      attendance,
+      { href: "/projects", label: "Projects" },
+      performance,
+      ...shared,
+    ];
   }
   if (role === "project_head") {
     return [
       home,
       scan,
+      attendance,
       { href: "/projects", label: "Projects" },
       { href: "/intern-logs", label: "Logs" },
+      performance,
+      ...shared,
     ];
   }
   if (role === "employee") {
     return [
       home,
       scan,
+      attendance,
       { href: "/tasks", label: "Tasks" },
       { href: "/summary", label: "Summary" },
+      ...shared,
     ];
   }
   if (role === "intern") {
     return [
       home,
       scan,
+      attendance,
       { href: "/tasks", label: "Tasks" },
       { href: "/learning-log", label: "Log" },
+      ...shared,
     ];
   }
-  return [home, scan];
+  return [home, scan, attendance, ...shared];
 }

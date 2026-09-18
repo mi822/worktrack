@@ -14,32 +14,34 @@ export function AssigneeTaskActions({
   taskId: number;
   status: TaskStatus;
 }) {
-  if (status === "pending") {
+  if (status === "assigned" || status === "rejected") {
     return (
       <form action={startTask}>
         <input type="hidden" name="task_id" value={taskId} />
-        <FormSubmitButton pendingLabel="Starting…">Start task</FormSubmitButton>
+        <FormSubmitButton pendingLabel="Starting…">
+          {status === "rejected" ? "Resume work" : "Start task"}
+        </FormSubmitButton>
       </form>
     );
   }
 
-  if (status === "in_progress" || status === "rejected") {
+  if (status === "in_progress") {
     return (
       <form action={submitTask} className="space-y-4">
         <input type="hidden" name="task_id" value={taskId} />
+        <p className="text-sm text-muted">
+          When your work is ready, submit it so the project head or manager can
+          approve it.
+        </p>
         <label className="field-label">
-          <span className="field-caption">
-            {status === "rejected" ? "Resubmission notes" : "Submission notes"}
-          </span>
+          <span className="field-caption">Submission notes</span>
           <textarea
             name="notes"
             rows={3}
             className="field-input h-auto min-h-20 py-2"
           />
         </label>
-        <FormSubmitButton pendingLabel="Submitting…">
-          {status === "rejected" ? "Resubmit" : "Submit work"}
-        </FormSubmitButton>
+        <FormSubmitButton pendingLabel="Submitting…">Submit work</FormSubmitButton>
       </form>
     );
   }
@@ -54,7 +56,7 @@ export function HeadReviewActions({
   taskId: number;
   status: TaskStatus;
 }) {
-  if (status !== "submitted" && status !== "resubmitted") {
+  if (status !== "submitted" && status !== "under_review") {
     return null;
   }
 

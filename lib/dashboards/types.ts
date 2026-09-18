@@ -6,6 +6,7 @@ import type {
   TaskListItem,
   TaskStatus,
 } from "@/lib/work/types";
+import type { WeekBar } from "@/lib/dashboards/week";
 
 export type RoleCount = Record<AppRole, number>;
 
@@ -41,6 +42,10 @@ export type AdminDashboard = {
   internLogTotal: number;
   internLogsToday: number;
   internCount: number;
+  week: WeekBar[];
+  avgPerformance: number | null;
+  engagementAvgRating: number | null;
+  surveyResponseRate: number | null;
 };
 
 export type ManagerDashboard = {
@@ -49,6 +54,11 @@ export type ManagerDashboard = {
   projectCounts: ProjectSnapshot;
   tasksByStatus: Record<TaskStatus, number>;
   taskTotal: number;
+  attention: TaskListItem[];
+  teamPresent: number;
+  teamLate: number;
+  teamAbsent: number;
+  teamAvgPerformance: number | null;
 };
 
 export type HeadDashboard = {
@@ -58,6 +68,7 @@ export type HeadDashboard = {
   tasksByStatus: Record<TaskStatus, number>;
   taskTotal: number;
   pendingReviews: number;
+  overdueTasks: number;
   approved: number;
   rejected: number;
   employeeTaskTotal: number;
@@ -65,6 +76,13 @@ export type HeadDashboard = {
   employeeApproved: number;
   internApproved: number;
   internLogs: InternLearningLog[];
+  attention: TaskListItem[];
+  teamPresent: number;
+  teamLate: number;
+  teamAbsent: number;
+  teamAvgPerformance: number | null;
+  engagementAvgRating: number | null;
+  surveyResponseRate: number | null;
 };
 
 export type WorkerPresence = {
@@ -79,4 +97,7 @@ export type WorkerDashboard = {
   tasksByStatus: Record<TaskStatus, number>;
   feedback: TaskFeedbackListItem[];
   dailyWriteSubmitted: boolean;
+  week: WeekBar[];
+  attendancePercent: number | null;
+  hoursToday: number | null;
 };

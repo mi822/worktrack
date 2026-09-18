@@ -4,7 +4,7 @@ import { requireManager } from "@/lib/auth";
 import { parseIdParam } from "@/lib/work/parse";
 import { getProject, listAssignableHeads } from "@/lib/work/queries";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 export default async function EditProjectPage({
   params,
@@ -29,13 +29,17 @@ export default async function EditProjectPage({
     notFound();
   }
 
+  if (project.status === "closed") {
+    redirect(`/projects/${project.id}?error=${encodeURIComponent("Closed projects cannot be edited.")}`);
+  }
+
   const error = query.error?.trim() ? query.error : null;
 
   return (
     <AppShell profile={profile}>
       <p className="field-caption">Manager</p>
       <h1 className="page-title mt-1">Edit project</h1>
-      <p className="page-lede">{project.title}</p>
+      <p className="mt-2 text-sm text-muted">{project.title}</p>
       <p className="mt-4 text-sm">
         <Link
           href={`/projects/${project.id}`}

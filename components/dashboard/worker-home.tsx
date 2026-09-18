@@ -1,7 +1,16 @@
-import { DashSection, EmptyNote, Stat, StatGrid } from "@/components/dashboard/ui";
+import { TodayPresence } from "@/components/today-presence";
+import {
+  DashSection,
+  EmptyNote,
+  ProgressBar,
+  Stat,
+  StatGrid,
+  StatusPill,
+  WeekBars,
+} from "@/components/dashboard/ui";
 import {
   EMPTY_TASKS,
-  HOURS_UNSET,
+  EMPTY_TASKS_HINT,
   NOT_RECORDED,
   NOT_SUBMITTED,
 } from "@/lib/dashboards/empty-copy";
@@ -10,96 +19,147 @@ import { formatDate, formatDateTime } from "@/lib/format-date";
 import { ROLE_HOME_LABEL } from "@/lib/roles";
 import {
   TASK_PRIORITY_LABEL,
-  TASK_STATUSES,
   TASK_STATUS_LABEL,
+  type TaskStatus,
 } from "@/lib/work/types";
 import Link from "next/link";
 
-function presenceCopy(data: WorkerDashboard): string {
-  if (!data.presence.hoursConfigured) {
-    return HOURS_UNSET;
+function taskTone(status: TaskStatus) {
+  if (status === "approved") {
+    return "ok" as const;
   }
-  if (data.presence.status === "present") {
-    return "Present";
+  if (status === "rejected") {
+    return "bad" as const;
   }
-  if (data.presence.status === "late") {
-    return "Late";
+  if (status === "submitted" || status === "under_review") {
+    return "warn" as const;
   }
-  return NOT_RECORDED;
+  if (status === "in_progress") {
+    return "action" as const;
+  }
+  return "muted" as const;
 }
 
 export function WorkerHome({
   role,
   data,
+  notice,
 }: {
   role: "employee" | "intern";
   data: WorkerDashboard;
+  notice?: string | null;
 }) {
   const writeHref = role === "employee" ? "/summary" : "/learning-log";
   const writeLabel = role === "employee" ? "End-of-day summary" : "Learning log";
+  const approved = data.tasksByStatus.approved;
+  const total = data.tasks.length;
 
   return (
     <>
       <p className="field-caption">{role === "intern" ? "Intern" : "Employee"}</p>
       <h1 className="page-title mt-1">{ROLE_HOME_LABEL[role]}</h1>
-      <p className="page-lede">
-        Your presence, tasks, and today’s {role === "intern" ? "learning log" : "summary"} for{" "}
-        {formatDate(data.workDate)}.
-      </p>
 
-      <DashSection caption="Today" title="Presence">
-        <div className="mt-4">
-          {data.presence.status ? (
-            <StatGrid>
-              <Stat label="Status" value={presenceCopy(data)} />
-            </StatGrid>
-          ) : (
-            <EmptyNote>{presenceCopy(data)}</EmptyNote>
-          )}
-        </div>
-      </DashSection>
+      <TodayPresence notice={notice} />
 
-      <DashSection caption="Assigned" title="Tasks">
+      <DashSection caption="Assigned" title="Your tasks">
         {data.tasks.length === 0 ? (
           <div className="mt-4">
-            <EmptyNote>{EMPTY_TASKS}</EmptyNote>
+            <EmptyNote title={EMPTY_TASKS}>{EMPTY_TASKS_HINT}</EmptyNote>
           </div>
         ) : (
           <>
-            <StatGrid>
-              {TASK_STATUSES.map((status) =>
-                data.tasksByStatus[status] > 0 ? (
-                  <Stat
-                    key={status}
-                    label={TASK_STATUS_LABEL[status]}
-                    value={data.tasksByStatus[status]}
-                  />
-                ) : null,
-              )}
-            </StatGrid>
+            <p className="mt-3 text-sm text-muted">
+              {approved} of {total} tasks approved
+            </p>
+            <ProgressBar value={approved} max={total} />
             <ul className="mt-4 divide-y divide-line">
-              {data.tasks.map((task) => (
-                <li key={task.id} className="py-4 first:pt-0 last:pb-0">
-                  <Link
-                    href={`/tasks/${task.id}`}
-                    className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-mark/20"
-                  >
-                    <p className="text-sm font-semibold text-ink">
-                      {task.description}
-                    </p>
-                    <p className="mt-1 text-sm text-muted">
-                      {TASK_STATUS_LABEL[task.status]}
-                      {" · "}
-                      {TASK_PRIORITY_LABEL[task.priority]}
-                      {" · "}
-                      {formatDate(task.deadline)}
-                      {task.project_title ? ` · ${task.project_title}` : ""}
-                    </p>
-                  </Link>
-                </li>
-              ))}
+              {data.tasks.map((task) => {
+                const actionLabel =
+                  task.status === "assigned"
+                    ? "Start task"
+                    : task.status === "in_progress"
+                      ? "Submit work"
+                      : task.status === "rejected"
+                        ? "Resume work"
+                        : task.status === "submitted" ||
+                            task.status === "under_review"
+                          ? "Waiting for review"
+                          : null;
+                return (
+                  <li key={task.id} className="py-4 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <Link
+                        href={`/tasks/${task.id}`}
+                        className="min-w-0 flex-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-action/20"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-ink">
+                            {task.description}
+                          </p>
+                          <StatusPill tone={taskTone(task.status)}>
+                            {TASK_STATUS_LABEL[task.status]}
+                          </StatusPill>
+                        </div>
+                        <p className="mt-1 text-sm text-muted">
+                          {TASK_PRIORITY_LABEL[task.priority]}
+                          {" · "}
+                          {formatDate(task.deadline)}
+                          {task.project_title ? ` · ${task.project_title}` : ""}
+                        </p>
+                      </Link>
+                      {actionLabel &&
+                      (task.status === "assigned" ||
+                        task.status === "in_progress" ||
+                        task.status === "rejected") ? (
+                        <Link
+                          href={`/tasks/${task.id}`}
+                          className="btn-primary shrink-0"
+                        >
+                          {actionLabel}
+                        </Link>
+                      ) : actionLabel ? (
+                        <span className="shrink-0 text-sm text-muted">
+                          {actionLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
+            <p className="mt-4">
+              <Link href="/tasks" className="btn-secondary">
+                All tasks
+              </Link>
+            </p>
           </>
+        )}
+      </DashSection>
+
+      <DashSection caption="Today" title="Hours">
+        <StatGrid>
+          <Stat label="Hours today" value={data.hoursToday ?? "—"} />
+          <Stat
+            label="Attendance"
+            value={
+              data.attendancePercent === null
+                ? "—"
+                : `${data.attendancePercent}%`
+            }
+            tone="action"
+          />
+        </StatGrid>
+      </DashSection>
+
+      <DashSection caption="This week" title="Your attendance">
+        {data.week.every((day) => day.present + day.late === 0) ? (
+          <div className="mt-4">
+            <EmptyNote title={NOT_RECORDED}>
+              Bars appear after you record presence on a working day.
+            </EmptyNote>
+          </div>
+        ) : (
+          <WeekBars days={data.week} />
         )}
       </DashSection>
 
@@ -129,10 +189,12 @@ export function WorkerHome({
         <div className="mt-4">
           {data.dailyWriteSubmitted ? (
             <StatGrid>
-              <Stat label="Status" value="Submitted" />
+              <Stat label="Status" value="Submitted" tone="ok" />
             </StatGrid>
           ) : (
-            <EmptyNote>{NOT_SUBMITTED}</EmptyNote>
+            <EmptyNote title={NOT_SUBMITTED}>
+              Open the form to write today’s {writeLabel.toLowerCase()}.
+            </EmptyNote>
           )}
           <p className="mt-4">
             <Link href={writeHref} className="btn-secondary">

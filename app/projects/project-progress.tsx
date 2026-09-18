@@ -1,12 +1,13 @@
 import { TASK_STATUS_LABEL, type ProjectProgress, type TaskStatus } from "@/lib/work/types";
 
 const DETAIL_STATUSES: TaskStatus[] = [
-  "pending",
+  "created",
+  "assigned",
   "in_progress",
   "submitted",
+  "under_review",
   "approved",
   "rejected",
-  "resubmitted",
 ];
 
 export function ProjectProgressStats({ progress }: { progress: ProjectProgress }) {

@@ -1,2 +1,2 @@
-export const PHONE_SCAN_HELP =
-  "On a phone, do not use the camera inside WorkTrack. Open your QR Scanner app, scan the organization QR, and open the link. That records your presence.";
+export const SCAN_PAGE_LEDE =
+  "The Admin's active presence QR appears here and is processed automatically inside the app. No camera is used.";

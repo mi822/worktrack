@@ -11,9 +11,6 @@ export default async function InternLogsPage() {
     <AppShell profile={profile}>
       <p className="field-caption">Project head</p>
       <h1 className="page-title mt-1">Intern learning logs</h1>
-      <p className="page-lede">
-        Logs from interns who have a task on a project assigned to you.
-      </p>
 
       <section className="mt-8 space-y-4">
         {logs.length === 0 ? (

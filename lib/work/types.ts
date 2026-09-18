@@ -1,10 +1,11 @@
 export const TASK_STATUSES = [
-  "pending",
+  "created",
+  "assigned",
   "in_progress",
   "submitted",
+  "under_review",
   "approved",
   "rejected",
-  "resubmitted",
 ] as const;
 
 export type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -14,12 +15,13 @@ export const TASK_PRIORITIES = ["low", "medium", "high"] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
-  pending: "Pending",
-  in_progress: "In progress",
+  created: "Created",
+  assigned: "Assigned",
+  in_progress: "In Progress",
   submitted: "Submitted",
+  under_review: "Under Review",
   approved: "Approved",
   rejected: "Rejected",
-  resubmitted: "Resubmitted",
 };
 
 export const TASK_PRIORITY_LABEL: Record<TaskPriority, string> = {
@@ -33,6 +35,20 @@ export type NamedProfile = {
   full_name: string;
 };
 
+export const PROJECT_STATUSES = [
+  "active",
+  "pending_closure",
+  "closed",
+] as const;
+
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
+  active: "Active",
+  pending_closure: "Submitted to manager",
+  closed: "Closed",
+};
+
 export type ProjectRecord = {
   id: number;
   manager_id: string;
@@ -42,7 +58,14 @@ export type ProjectRecord = {
   start_date: string;
   deadline: string;
   budget: string;
+  status: ProjectStatus;
+  submitted_for_closure_at: string | null;
+  closed_at: string | null;
 };
+
+export function isProjectStatus(value: string): value is ProjectStatus {
+  return (PROJECT_STATUSES as readonly string[]).includes(value);
+}
 
 export type ProjectProgress = {
   total: number;
@@ -91,12 +114,13 @@ export type TaskFeedbackListItem = TaskFeedbackRecord & {
 
 export function emptyTaskStatusCounts(): Record<TaskStatus, number> {
   return {
-    pending: 0,
+    created: 0,
+    assigned: 0,
     in_progress: 0,
     submitted: 0,
+    under_review: 0,
     approved: 0,
     rejected: 0,
-    resubmitted: 0,
   };
 }
 

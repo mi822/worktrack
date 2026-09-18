@@ -1,5 +1,6 @@
 "use client";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { ROLE_LABEL } from "@/lib/roles";
 import type { AppRole, Profile } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -87,9 +88,7 @@ export function UsersManager({
             </select>
           </label>
           <div className="min-[480px]:col-span-2">
-            <button type="submit" className="btn-primary">
-              Create user
-            </button>
+            <FormSubmitButton pendingLabel="Creating…">Create user</FormSubmitButton>
           </div>
         </form>
       </section>
@@ -177,9 +176,9 @@ export function UsersManager({
                     />
                   </label>
                   <div className="flex flex-wrap items-end gap-2">
-                    <button type="submit" className="btn-secondary">
+                    <FormSubmitButton pendingLabel="Saving…" className="btn-secondary">
                       Save
-                    </button>
+                    </FormSubmitButton>
                     <button
                       type="submit"
                       formAction={async () => {
@@ -207,7 +206,7 @@ export function UsersManager({
                     <span
                       className={
                         user.is_active
-                          ? "status-pill bg-mark/10 text-mark"
+                          ? "status-pill-ok"
                           : "status-pill bg-stone-200/80 text-muted"
                       }
                     >

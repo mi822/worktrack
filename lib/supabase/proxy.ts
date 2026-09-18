@@ -7,7 +7,47 @@ import {
 import { safeScanReturnPath, isPresenceScanPath } from "@/lib/presence/scan-payload";
 import { isAppRole, type AppRole } from "@/lib/types";
 
+function hasSupabaseAuthCookie(request: NextRequest) {
+  return request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.includes("-auth-token"));
+}
+
+function needsProfileForPath(path: string) {
+  return (
+    path.startsWith("/admin") ||
+    path === "/scan" ||
+    path.startsWith("/s/") ||
+    path.startsWith("/attendance") ||
+    path.startsWith("/projects") ||
+    path.startsWith("/tasks") ||
+    path.startsWith("/summary") ||
+    path.startsWith("/learning-log") ||
+    path.startsWith("/intern-logs") ||
+    path.startsWith("/performance") ||
+    path.startsWith("/timesheet") ||
+    path.startsWith("/surveys") ||
+    path.startsWith("/documents")
+  );
+}
+
 export async function updateSession(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const isLogin = path === "/login";
+
+  if (!hasSupabaseAuthCookie(request)) {
+    if (isLogin) {
+      return NextResponse.next({ request });
+    }
+    const url = request.nextUrl.clone();
+    const attempted = request.nextUrl.pathname + request.nextUrl.search;
+    url.pathname = "/login";
+    url.search = isPresenceScanPath(request.nextUrl.pathname)
+      ? `?next=${encodeURIComponent(attempted)}`
+      : "";
+    return NextResponse.redirect(url);
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -36,8 +76,6 @@ export async function updateSession(request: NextRequest) {
 
   const { data: claimsData } = await supabase.auth.getClaims();
   const userId = claimsData?.claims?.sub as string | undefined;
-  const path = request.nextUrl.pathname;
-  const isLogin = path === "/login";
 
   if (!userId) {
     if (!isLogin) {
@@ -49,6 +87,10 @@ export async function updateSession(request: NextRequest) {
           : "";
       return NextResponse.redirect(url);
     }
+    return supabaseResponse;
+  }
+
+  if (!isLogin && !needsProfileForPath(path)) {
     return supabaseResponse;
   }
 
@@ -91,6 +133,26 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  if (path.startsWith("/attendance")) {
+    if (role === "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/attendance";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    if (
+      role !== "intern" &&
+      role !== "employee" &&
+      role !== "project_head" &&
+      role !== "manager"
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
 
   if (
@@ -154,6 +216,19 @@ export async function updateSession(request: NextRequest) {
   if (path.startsWith("/intern-logs") && role !== "project_head") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  if (
+    (path === "/surveys/new" ||
+      /\/surveys\/[^/]+\/edit$/.test(path) ||
+      /\/surveys\/[^/]+\/results$/.test(path)) &&
+    role !== "admin" &&
+    role !== "manager"
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/surveys";
     url.search = "";
     return NextResponse.redirect(url);
   }

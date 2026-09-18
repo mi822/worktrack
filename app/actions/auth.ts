@@ -1,4 +1,4 @@
-"use server";
+ "use server";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -23,13 +23,15 @@ export async function signIn(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
   if (error) {
     redirect(loginErrorPath(next));
   }
 
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const userId = claimsData?.claims?.sub as string | undefined;
+  const userId = data.user?.id;
   if (!userId) {
     await supabase.auth.signOut();
     redirect(loginErrorPath(next));

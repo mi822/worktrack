@@ -18,10 +18,6 @@ export default async function NewProjectPage({
     <AppShell profile={profile}>
       <p className="field-caption">Manager</p>
       <h1 className="page-title mt-1">New project</h1>
-      <p className="page-lede">
-        Assign exactly one project head. The project stays visible to you and
-        that head.
-      </p>
       <p className="mt-4 text-sm">
         <Link href="/projects" className="text-muted underline-offset-2 hover:text-ink hover:underline">
           Back to projects

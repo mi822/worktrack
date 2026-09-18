@@ -1,6 +1,7 @@
 import { PresenceResult } from "@/app/scan/presence-result";
 import { AppShell } from "@/components/app-shell";
 import { requireScanner } from "@/lib/auth";
+import { formatDate, formatTime } from "@/lib/format-date";
 import {
   getMyPresenceToday,
   recordPresenceScan,
@@ -19,8 +20,8 @@ export default async function ShortScanPage({
     return (
       <AppShell profile={profile}>
         <p className="field-caption">Presence</p>
-        <h1 className="page-title mt-1">Scan</h1>
-        <p className="mt-8 rounded-xl border border-dashed border-line bg-canvas/60 px-4 py-8 text-center text-sm text-muted">
+        <h1 className="page-title mt-1">Today&apos;s Presence</h1>
+        <p className="mt-6 rounded-lg border border-dashed border-line bg-white px-4 py-6 text-center text-sm text-muted">
           Working hours are not configured.
         </p>
       </AppShell>
@@ -31,10 +32,13 @@ export default async function ShortScanPage({
     return (
       <AppShell profile={profile}>
         <p className="field-caption">Presence</p>
-        <h1 className="page-title mt-1">Scan</h1>
+        <h1 className="page-title mt-1">Today&apos;s Presence</h1>
         <PresenceResult
           alreadyRecorded
           recordedStatus={today.record.status}
+          fullName={profile.full_name}
+          workDate={formatDate(today.record.work_date)}
+          scannedAt={formatTime(today.record.scanned_at)}
         />
       </AppShell>
     );
@@ -45,15 +49,14 @@ export default async function ShortScanPage({
   return (
     <AppShell profile={profile}>
       <p className="field-caption">Presence</p>
-      <h1 className="page-title mt-1">Scan</h1>
-      <p className="page-lede">
-        Opening this link records today’s presence. You do not need the camera
-        inside WorkTrack.
-      </p>
+      <h1 className="page-title mt-1">Today&apos;s Presence</h1>
       <PresenceResult
         alreadyRecorded={result.alreadyRecorded}
         recordedStatus={result.recorded ? result.status : null}
         error={result.recorded || result.alreadyRecorded ? null : result.error}
+        fullName={result.fullName ?? profile.full_name}
+        workDate={result.workDate ? formatDate(result.workDate) : null}
+        scannedAt={result.scannedAt ? formatTime(result.scannedAt) : null}
       />
     </AppShell>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn } from "@/app/actions/auth";
+import { FormSubmitButton } from "@/components/form-submit-button";
 
 export function LoginForm({
   errorMessage,
@@ -33,9 +34,9 @@ export function LoginForm({
           className="field-input"
         />
       </label>
-      <button type="submit" className="btn-primary mt-1">
+      <FormSubmitButton pendingLabel="Signing in…" className="btn-primary mt-1">
         Sign in
-      </button>
+      </FormSubmitButton>
     </form>
   );
 }

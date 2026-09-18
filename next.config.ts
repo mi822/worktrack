@@ -15,7 +15,12 @@ function lanHosts(): string[] {
 
 const nextConfig: NextConfig = {
   agentRules: false,
-  allowedDevOrigins: lanHosts(),
+  allowedDevOrigins: ["127.0.0.1", "localhost", ...lanHosts()],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "12mb",
+    },
+  },
 };
 
 export default nextConfig;

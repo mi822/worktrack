@@ -3,8 +3,16 @@ import {
   HeadReviewActions,
 } from "@/app/tasks/task-actions";
 import { AppShell } from "@/components/app-shell";
+import { DocumentPanel } from "@/components/documents/document-panel";
+import { StatusPill } from "@/components/dashboard/ui";
 import { requireTaskAccess } from "@/lib/auth";
+import { listProjectDocuments } from "@/lib/documents/queries";
 import { formatDate, formatDateTime } from "@/lib/format-date";
+import {
+  DEADLINE_STATE_LABEL,
+  deadlineState,
+  type DeadlineState,
+} from "@/lib/work/deadline";
 import { parseIdParam } from "@/lib/work/parse";
 import {
   getTask,
@@ -14,6 +22,16 @@ import {
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from "@/lib/work/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
+function deadlineTone(state: DeadlineState) {
+  if (state === "completed" || state === "on_time") {
+    return "ok" as const;
+  }
+  if (state === "due_soon") {
+    return "warn" as const;
+  }
+  return "bad" as const;
+}
 
 export default async function TaskDetailPage({
   params,
@@ -34,17 +52,21 @@ export default async function TaskDetailPage({
     notFound();
   }
 
-  const [submissions, feedback, query] = await Promise.all([
+  const [submissions, feedback, documents, query] = await Promise.all([
     listTaskSubmissions(id),
     listTaskFeedback(id),
+    listProjectDocuments(task.project_id, id),
     searchParams,
   ]);
   const error = query.error?.trim() ? query.error : null;
   const isAssignee = task.assignee_id === profile.id;
   const isHead = profile.role === "project_head";
   const isManager = profile.role === "manager";
+  const canReview = isHead || isManager;
   const backHref =
     isHead || isManager ? `/projects/${task.project_id}` : "/tasks";
+  const today = new Date().toISOString().slice(0, 10);
+  const due = deadlineState(task.deadline, task.status, today);
 
   return (
     <AppShell profile={profile}>
@@ -52,12 +74,14 @@ export default async function TaskDetailPage({
         {isHead ? "Project head" : isManager ? "Manager" : "Task"}
       </p>
       <h1 className="page-title mt-1">{task.description}</h1>
-      <p className="page-lede">
-        {TASK_STATUS_LABEL[task.status]}
-        {" · "}
-        {TASK_PRIORITY_LABEL[task.priority]}
-        {" · due "}
-        {formatDate(task.deadline)}
+      <p className="mt-2 flex flex-wrap items-center gap-2">
+        <StatusPill tone="muted">{TASK_STATUS_LABEL[task.status]}</StatusPill>
+        <StatusPill tone={deadlineTone(due)}>
+          {DEADLINE_STATE_LABEL[due]}
+        </StatusPill>
+        <span className="text-sm text-muted">
+          {TASK_PRIORITY_LABEL[task.priority]} · due {formatDate(task.deadline)}
+        </span>
       </p>
       <p className="mt-4 text-sm">
         <Link
@@ -86,8 +110,17 @@ export default async function TaskDetailPage({
           <h2 className="text-sm font-semibold tracking-tight">Your work</h2>
           <div className="mt-4">
             <AssigneeTaskActions taskId={task.id} status={task.status} />
-            {task.status === "submitted" || task.status === "resubmitted" ? (
+            {task.status === "submitted" ? (
               <p className="text-sm text-muted">Waiting for review.</p>
+            ) : null}
+            {task.status === "under_review" ? (
+              <p className="text-sm text-muted">Under review.</p>
+            ) : null}
+            {task.status === "rejected" ? (
+              <p className="mt-3 text-sm text-muted">
+                This task was rejected. Read the feedback below, then resume and
+                submit again.
+              </p>
             ) : null}
             {task.status === "approved" ? (
               <p className="text-sm text-muted">This task is approved.</p>
@@ -96,15 +129,29 @@ export default async function TaskDetailPage({
         </section>
       ) : null}
 
-      {isHead ? (
+      {canReview ? (
         <section className="panel mt-6 p-6">
           <h2 className="text-sm font-semibold tracking-tight">Review</h2>
           <div className="mt-4">
             <HeadReviewActions taskId={task.id} status={task.status} />
-            {task.status !== "submitted" && task.status !== "resubmitted" ? (
+            {task.status === "assigned" ? (
               <p className="text-sm text-muted">
-                No review action for this status.
+                Waiting for the assignee to start the task.
               </p>
+            ) : null}
+            {task.status === "in_progress" ? (
+              <p className="text-sm text-muted">
+                Waiting for the assignee to submit their work. Approval is
+                available after they click Submit work.
+              </p>
+            ) : null}
+            {task.status === "rejected" ? (
+              <p className="text-sm font-medium text-ink">
+                Rejected. The assignee must fix the work and submit again.
+              </p>
+            ) : null}
+            {task.status === "approved" ? (
+              <p className="text-sm text-muted">This task is already approved.</p>
             ) : null}
           </div>
         </section>
@@ -123,6 +170,14 @@ export default async function TaskDetailPage({
           </ul>
         </section>
       ) : null}
+
+      <DocumentPanel
+        documents={documents}
+        projectId={task.project_id}
+        taskId={task.id}
+        returnTo={`/tasks/${task.id}`}
+        canUpload={isAssignee || canReview}
+      />
 
       {submissions.length > 0 ? (
         <section className="panel mt-6 p-6">

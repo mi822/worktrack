@@ -18,10 +18,6 @@ export default async function AdminHoursPage({
     <AppShell profile={profile}>
       <p className="field-caption">Admin</p>
       <h1 className="page-title mt-1">Working hours</h1>
-      <p className="page-lede">
-        Presence status uses these values. They are stored in the database, not
-        guessed from the browser.
-      </p>
       {schedule ? null : (
         <p className="mt-6 rounded-xl border border-dashed border-line bg-canvas/60 px-4 py-3 text-sm text-muted">
           Working hours are not configured.

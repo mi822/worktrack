@@ -1,5 +1,7 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import {
+  isProjectStatus,
   isTaskPriority,
   isTaskStatus,
   TASK_STATUS_LABEL,
@@ -25,7 +27,13 @@ function asProject(row: {
   start_date: string;
   deadline: string;
   budget: number | string;
-}): ProjectRecord {
+  status: string;
+  submitted_for_closure_at: string | null;
+  closed_at: string | null;
+}): ProjectRecord | null {
+  if (!isProjectStatus(row.status)) {
+    return null;
+  }
   return {
     id: Number(row.id),
     manager_id: row.manager_id,
@@ -35,6 +43,9 @@ function asProject(row: {
     start_date: row.start_date,
     deadline: row.deadline,
     budget: String(row.budget),
+    status: row.status,
+    submitted_for_closure_at: row.submitted_for_closure_at,
+    closed_at: row.closed_at,
   };
 }
 
@@ -137,12 +148,12 @@ export async function listAssignableWorkers(): Promise<NamedProfile[]> {
   }));
 }
 
-export async function listProjects(): Promise<ProjectListItem[]> {
+export const listProjects = cache(async (): Promise<ProjectListItem[]> => {
   const supabase = await createClient();
   const { data: projectRows, error } = await supabase
     .from("projects")
     .select(
-      "id, manager_id, project_head_id, title, description, start_date, deadline, budget",
+      "id, manager_id, project_head_id, title, description, start_date, deadline, budget, status, submitted_for_closure_at, closed_at",
     )
     .order("deadline");
 
@@ -150,25 +161,25 @@ export async function listProjects(): Promise<ProjectListItem[]> {
     return [];
   }
 
-  const projects = projectRows.map(asProject);
+  const projects = projectRows
+    .map(asProject)
+    .filter((row): row is ProjectRecord => row !== null);
   const ids = projects.map((project) => project.id);
-  let taskRows: { project_id: number; status: string }[] = [];
-  if (ids.length > 0) {
-    const { data } = await supabase
-      .from("tasks")
-      .select("project_id, status")
-      .in("project_id", ids);
-    taskRows = (data ?? []).map((row) => ({
-      project_id: Number(row.project_id),
-      status: row.status,
-    }));
-  }
+  const headIds = projects
+    .map((project) => project.project_head_id)
+    .filter((id): id is string => Boolean(id));
 
-  const names = await namesById(
-    projects
-      .map((project) => project.project_head_id)
-      .filter((id): id is string => Boolean(id)),
-  );
+  const [taskResult, names] = await Promise.all([
+    ids.length > 0
+      ? supabase.from("tasks").select("project_id, status").in("project_id", ids)
+      : Promise.resolve({ data: [] as { project_id: number | string; status: string }[] }),
+    namesById(headIds),
+  ]);
+
+  const taskRows = (taskResult.data ?? []).map((row) => ({
+    project_id: Number(row.project_id),
+    status: row.status,
+  }));
 
   return projects.map((project) => ({
     ...project,
@@ -177,7 +188,7 @@ export async function listProjects(): Promise<ProjectListItem[]> {
       : null,
     progress: progressFromTasks(project.id, taskRows),
   }));
-}
+});
 
 export async function getProject(
   id: number,
@@ -186,7 +197,7 @@ export async function getProject(
   const { data, error } = await supabase
     .from("projects")
     .select(
-      "id, manager_id, project_head_id, title, description, start_date, deadline, budget",
+      "id, manager_id, project_head_id, title, description, start_date, deadline, budget, status, submitted_for_closure_at, closed_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -196,6 +207,10 @@ export async function getProject(
   }
 
   const project = asProject(data);
+  if (!project) {
+    return null;
+  }
+
   const { data: taskRows } = await supabase
     .from("tasks")
     .select("project_id, status")
@@ -242,7 +257,7 @@ export async function listProjectTasks(projectId: number): Promise<TaskListItem[
   }));
 }
 
-export async function listAssignedTasks(userId: string): Promise<TaskListItem[]> {
+export const listAssignedTasks = cache(async (userId: string): Promise<TaskListItem[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tasks")
@@ -272,6 +287,44 @@ export async function listAssignedTasks(userId: string): Promise<TaskListItem[]>
   return tasks.map((task) => ({
     ...task,
     assignee_name: null,
+    project_title: titles.get(task.project_id) ?? null,
+  }));
+});
+
+export async function listTasksForProjects(
+  projectIds: number[],
+): Promise<TaskListItem[]> {
+  if (projectIds.length === 0) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tasks")
+    .select(
+      "id, project_id, assignee_id, created_by, description, priority, deadline, status, created_at, updated_at",
+    )
+    .in("project_id", projectIds)
+    .order("deadline");
+
+  if (error || !data) {
+    return [];
+  }
+
+  const tasks = data.map(asTask).filter((row): row is TaskRecord => row !== null);
+  const names = await namesById(tasks.map((task) => task.assignee_id));
+  const titles = new Map<number, string>();
+  const { data: projects } = await supabase
+    .from("projects")
+    .select("id, title")
+    .in("id", projectIds);
+  for (const row of projects ?? []) {
+    titles.set(Number(row.id), row.title);
+  }
+
+  return tasks.map((task) => ({
+    ...task,
+    assignee_name: names.get(task.assignee_id) ?? null,
     project_title: titles.get(task.project_id) ?? null,
   }));
 }
@@ -376,9 +429,10 @@ export async function listTaskFeedback(
 }
 
 const PROGRESS_STATUSES: TaskStatus[] = [
-  "pending",
+  "assigned",
   "in_progress",
   "submitted",
+  "under_review",
   "approved",
 ];
 
@@ -389,10 +443,8 @@ export function progressCopy(progress: ProjectProgress): string {
   if (progress.byStatus.rejected > 0) {
     parts.push(`${TASK_STATUS_LABEL.rejected} ${progress.byStatus.rejected}`);
   }
-  if (progress.byStatus.resubmitted > 0) {
-    parts.push(
-      `${TASK_STATUS_LABEL.resubmitted} ${progress.byStatus.resubmitted}`,
-    );
+  if (progress.byStatus.created > 0) {
+    parts.push(`${TASK_STATUS_LABEL.created} ${progress.byStatus.created}`);
   }
   return parts.join(" · ");
 }

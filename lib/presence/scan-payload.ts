@@ -1,9 +1,5 @@
 const TOKEN_SEGMENT = /^[A-Za-z0-9_-]+$/;
 
-function pathOnly(raw: string) {
-  return raw.split("?")[0] ?? raw;
-}
-
 export function isPresenceScanPath(pathname: string): boolean {
   if (pathname === "/scan") {
     return true;
@@ -43,14 +39,8 @@ export function tokenFromScanPayload(raw: string): string {
   return trimmed;
 }
 
-/** Only presence-scan paths are safe post-login return paths. */
+/** Post-login return path. Presence is recorded from the dashboard, not a scan link. */
 export function safeScanReturnPath(raw: string | null | undefined): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("://")) {
-    return "/";
-  }
-  const path = pathOnly(raw);
-  if (!isPresenceScanPath(path)) {
-    return "/";
-  }
-  return path === "/scan" ? raw : path;
+  void raw;
+  return "/";
 }

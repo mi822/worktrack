@@ -1,84 +1,114 @@
 "use client";
 
-import { ALREADY_RECORDED } from "@/lib/presence/messages";
-import { PHONE_SCAN_HELP } from "@/lib/presence/phone-scan-help";
-import { recordPresenceScan } from "@/lib/presence/presence-actions";
-import { Html5Qrcode } from "html5-qrcode";
+import { PresenceResult } from "@/app/scan/presence-result";
+import { formatDate, formatTime } from "@/lib/format-date";
+import { autoRecordActivePresence } from "@/lib/presence/presence-actions";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-export function PresenceScanner() {
+type ScanOutcome = {
+  alreadyRecorded?: boolean;
+  recordedStatus?: string | null;
+  error?: string | null;
+  fullName?: string | null;
+  workDate?: string | null;
+  scannedAt?: string | null;
+};
+
+export function PresenceScanner({
+  fullName,
+  qrImage,
+}: {
+  fullName: string;
+  qrImage: string;
+}) {
   const router = useRouter();
-  const hostId = "presence-scanner";
-  const scannerRef = useRef<Html5Qrcode | null>(null);
   const busyRef = useRef(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [phoneHelp, setPhoneHelp] = useState(false);
+  const [outcome, setOutcome] = useState<ScanOutcome | null>(null);
 
   useEffect(() => {
-    if (!window.isSecureContext) {
-      setPhoneHelp(true);
+    let cancelled = false;
+
+    if (busyRef.current) {
       return;
     }
+    busyRef.current = true;
+    setScanning(true);
+    setError(null);
 
-    const scanner = new Html5Qrcode(hostId, { verbose: false });
-    scannerRef.current = scanner;
+    void (async () => {
+      const result = await autoRecordActivePresence();
+      if (cancelled) {
+        return;
+      }
 
-    scanner
-      .start(
-        { facingMode: "environment" },
-        { fps: 8, qrbox: { width: 220, height: 220 } },
-        async (decoded) => {
-          if (busyRef.current) {
-            return;
-          }
-          busyRef.current = true;
-          const result = await recordPresenceScan(decoded);
-          if (result.recorded || result.alreadyRecorded) {
-            await scanner.stop().catch(() => undefined);
-            scannerRef.current = null;
-            setMessage(
-              result.alreadyRecorded
-                ? ALREADY_RECORDED
-                : "Presence recorded.",
-            );
-            router.refresh();
-            return;
-          }
-          setError(result.error);
-          busyRef.current = false;
-        },
-        () => undefined,
-      )
-      .catch(() => {
-        setPhoneHelp(true);
-      });
+      if (result.recorded || result.alreadyRecorded) {
+        setScanning(false);
+        setOutcome({
+          alreadyRecorded: result.alreadyRecorded,
+          recordedStatus: result.status ?? "present",
+          fullName: result.fullName ?? fullName,
+          workDate: result.workDate ? formatDate(result.workDate) : null,
+          scannedAt: result.scannedAt ? formatTime(result.scannedAt) : null,
+        });
+        router.refresh();
+        return;
+      }
+
+      setScanning(false);
+      setError(result.error);
+      busyRef.current = false;
+    })();
 
     return () => {
-      const current = scannerRef.current;
-      if (current?.isScanning) {
-        void current.stop().catch(() => undefined);
-      }
+      cancelled = true;
     };
-  }, [router]);
+  }, [fullName, router]);
+
+  if (outcome) {
+    return (
+      <PresenceResult
+        alreadyRecorded={outcome.alreadyRecorded}
+        recordedStatus={outcome.recordedStatus}
+        fullName={outcome.fullName}
+        workDate={outcome.workDate}
+        scannedAt={outcome.scannedAt}
+      />
+    );
+  }
 
   return (
-    <div className="panel mt-8 p-6">
-      {error ? <p className="alert-error mb-4">{error}</p> : null}
-      {message ? (
-        <p className="text-sm font-medium text-ink">{message}</p>
-      ) : phoneHelp ? (
-        <p className="text-sm leading-relaxed text-muted">{PHONE_SCAN_HELP}</p>
-      ) : (
-        <>
-          <p className="text-sm text-muted">
-            Point the camera at the organization QR code. Scanning stops after a
-            successful record.
-          </p>
-          <div id={hostId} className="mt-4 overflow-hidden rounded-xl" />
-        </>
-      )}
+    <div className="panel mt-1 px-5 py-6 text-center">
+      <p className="field-caption">Registering presence</p>
+      <p className="mt-3 text-sm text-muted">
+        {scanning ? "Scanning automatically…" : "Scan finished."}
+      </p>
+
+      <div className="relative mx-auto mt-4 w-full max-w-[240px]">
+        <div className="relative overflow-hidden rounded-md border border-line bg-white p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={qrImage}
+            alt="Organization presence QR code for today"
+            className="block h-full w-full"
+          />
+          {scanning ? (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-3 overflow-hidden rounded-sm"
+            >
+              <div className="wt-scan-line" />
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {scanning ? (
+        <p className="mt-3 text-sm text-muted">Please wait…</p>
+      ) : null}
+      {error ? <p className="alert-error mt-3 text-left">{error}</p> : null}
     </div>
   );
 }

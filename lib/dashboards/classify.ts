@@ -1,7 +1,7 @@
 import { isWorkingDay } from "@/lib/logs/work-date";
 import type { WorkSchedule } from "@/lib/presence/types";
 import type { AppRole } from "@/lib/types";
-import type { ProjectListItem, ProjectProgress, TaskStatus } from "@/lib/work/types";
+import type { ProjectListItem, ProjectProgress, TaskListItem, TaskStatus } from "@/lib/work/types";
 import { emptyTaskStatusCounts } from "@/lib/work/types";
 
 export const SCANNER_ROLES: AppRole[] = [
@@ -11,8 +11,13 @@ export const SCANNER_ROLES: AppRole[] = [
   "intern",
 ];
 
-export function isProjectCompleted(progress: ProjectProgress): boolean {
-  return progress.total > 0 && progress.byStatus.approved === progress.total;
+export function isProjectCompleted(
+  project: Pick<ProjectListItem, "status"> | ProjectProgress,
+): boolean {
+  if ("status" in project) {
+    return project.status === "closed";
+  }
+  return project.total > 0 && project.byStatus.approved === project.total;
 }
 
 export function isProjectOverdue(
@@ -24,10 +29,10 @@ export function isProjectOverdue(
 }
 
 export function projectBucket(
-  project: Pick<ProjectListItem, "deadline" | "progress">,
+  project: Pick<ProjectListItem, "deadline" | "progress" | "status">,
   workDate: string,
 ): "completed" | "overdue" | "active" {
-  if (isProjectCompleted(project.progress)) {
+  if (isProjectCompleted(project)) {
     return "completed";
   }
   if (isProjectOverdue(project.deadline, workDate, false)) {
@@ -37,7 +42,7 @@ export function projectBucket(
 }
 
 export function summarizeProjects(
-  projects: Pick<ProjectListItem, "deadline" | "progress">[],
+  projects: Pick<ProjectListItem, "deadline" | "progress" | "status">[],
   workDate: string,
 ): {
   total: number;
@@ -96,6 +101,21 @@ export function formatPercent(value: number | null): string | null {
     return null;
   }
   return Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
+}
+
+export function attentionTasks(
+  tasks: TaskListItem[],
+  workDate: string,
+): TaskListItem[] {
+  return tasks
+    .filter(
+      (task) =>
+        task.status === "submitted" ||
+        task.status === "under_review" ||
+        (task.deadline < workDate && task.status !== "approved"),
+    )
+    .sort((a, b) => a.deadline.localeCompare(b.deadline))
+    .slice(0, 8);
 }
 
 export function expectedScannerCount(input: {

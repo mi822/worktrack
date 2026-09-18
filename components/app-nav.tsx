@@ -1,15 +1,23 @@
 "use client";
 
 import { signOut } from "@/app/actions/auth";
+import { FormSubmitButton } from "@/components/form-submit-button";
+import { NavIcon } from "@/components/nav-icon";
 import type { NavItem } from "@/lib/roles";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function AppNav({ items }: { items: NavItem[] }) {
+export function AppNav({
+  items,
+  onNavigate,
+}: {
+  items: NavItem[];
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-wrap items-center gap-1 text-sm">
+    <nav className="flex flex-1 flex-col gap-1">
       {items.map((item) => {
         const active =
           item.href === "/"
@@ -20,23 +28,21 @@ export function AppNav({ items }: { items: NavItem[] }) {
           <Link
             key={item.href}
             href={item.href}
-            className={
-              active
-                ? "rounded-lg bg-canvas px-3 py-1.5 font-medium text-ink"
-                : "rounded-lg px-3 py-1.5 text-muted transition hover:bg-canvas hover:text-ink"
-            }
+            onClick={onNavigate}
+            className={active ? "nav-link-active" : "nav-link"}
           >
+            <NavIcon href={item.href} />
             {item.label}
           </Link>
         );
       })}
-      <form action={signOut} className="ml-1 border-l border-line pl-2">
-        <button
-          type="submit"
-          className="rounded-lg px-3 py-1.5 text-muted transition hover:bg-canvas hover:text-ink"
+      <form action={signOut} className="mt-auto border-t border-line/70 pt-4">
+        <FormSubmitButton
+          pendingLabel="Signing out…"
+          className="nav-link w-full justify-start text-muted hover:text-bad"
         >
           Sign out
-        </button>
+        </FormSubmitButton>
       </form>
     </nav>
   );

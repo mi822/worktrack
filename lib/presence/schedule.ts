@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { asTime } from "@/lib/presence/schedule-input";
 import type { WorkSchedule } from "@/lib/presence/types";
+import { cache } from "react";
 
-export async function getWorkSchedule(): Promise<WorkSchedule | null> {
+export const getWorkSchedule = cache(async (): Promise<WorkSchedule | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("work_schedules")
@@ -32,4 +33,4 @@ export async function getWorkSchedule(): Promise<WorkSchedule | null> {
     break_end: asTime(data.break_end),
     timezone: data.timezone,
   };
-}
+});

@@ -135,5 +135,20 @@ export function workActionError(
   if (text.includes("task_head_only") || text.includes("task_assignee_only")) {
     return "You are not allowed to do that.";
   }
+  if (text.includes("not_found")) {
+    return "That item was not found.";
+  }
+  if (text.includes("tasks_incomplete")) {
+    return "Approve every task before submitting the project.";
+  }
+  if (text.includes("no_tasks")) {
+    return "Add and approve at least one task before submitting.";
+  }
+  if (text.includes("project_head_only") || text.includes("manager_only")) {
+    return "You are not allowed to do that.";
+  }
+  if (text.includes("invalid_status")) {
+    return "That project status change is not allowed.";
+  }
   return fallback;
 }

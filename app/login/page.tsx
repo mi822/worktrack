@@ -11,28 +11,32 @@ export default async function LoginPage({
   const params = await searchParams;
   const errorMessage = await getSignInErrorMessage(params.error);
   const nextPath = safeScanReturnPath(params.next);
-  const returnToScan = nextPath !== "/" ? nextPath : undefined;
+  const returnTo = nextPath !== "/" ? nextPath : undefined;
 
   return (
-    <div className="relative flex min-h-full items-center justify-center overflow-hidden px-4 py-12">
+    <div className="relative flex min-h-full flex-col items-center justify-center px-4 py-12">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_#e8e4d9_0%,_transparent_55%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(29,78,216,0.12),transparent_55%),linear-gradient(180deg,#eef1f6_0%,#f5f6f8_42%,#f5f6f8_100%)]"
       />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:linear-gradient(to_right,rgba(17,24,39,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(17,24,39,0.04)_1px,transparent_1px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_70%_65%_at_50%_40%,#000_20%,transparent_75%)]"
+      />
+
       <div className="relative w-full max-w-[400px]">
         <div className="mb-8 flex flex-col items-center text-center">
-          <BrandMark className="h-10 w-10" />
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-ink">
+          <BrandMark className="h-11 w-11" />
+          <h1 className="font-display mt-4 text-[2rem] font-semibold tracking-tight text-ink sm:text-[2.15rem]">
             WorkTrack
           </h1>
-          <p className="mt-1.5 text-sm text-muted">
-            {returnToScan
-              ? "Sign in as an employee, intern, manager, or project head. Opening this link records presence — you do not scan again inside WorkTrack."
-              : "Sign in with the account created for you."}
-          </p>
         </div>
-        <div className="panel p-7">
-          <LoginForm errorMessage={errorMessage} nextPath={returnToScan} />
+
+        <div className="rounded-xl border border-line bg-white px-6 py-7 sm:px-7 sm:py-8">
+          <p className="mb-6 text-center text-sm font-medium text-ink-soft">
+            Sign in
+          </p>
+          <LoginForm errorMessage={errorMessage} nextPath={returnTo} />
         </div>
       </div>
     </div>

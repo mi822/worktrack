@@ -1,8 +1,9 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAppRole, type Profile } from "@/lib/types";
 
-export async function getCurrentProfile(): Promise<Profile | null> {
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const { data: claimsData } = await supabase.auth.getClaims();
   const userId = claimsData?.claims?.sub as string | undefined;
@@ -26,12 +27,12 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     role: data.role,
     is_active: data.is_active,
   };
-}
+});
 
 export async function requireProfile(): Promise<Profile> {
   const profile = await getCurrentProfile();
   if (!profile) {
-    throw new Error("Not authenticated");
+    redirect("/login");
   }
   return profile;
 }
@@ -71,6 +72,18 @@ export async function requireProjectHead(): Promise<Profile> {
 export async function requireManagerOrHead(): Promise<Profile> {
   const profile = await requireProfile();
   if (profile.role !== "manager" && profile.role !== "project_head") {
+    redirect("/");
+  }
+  return profile;
+}
+
+export async function requirePerformanceAccess(): Promise<Profile> {
+  const profile = await requireProfile();
+  if (
+    profile.role !== "admin" &&
+    profile.role !== "manager" &&
+    profile.role !== "project_head"
+  ) {
     redirect("/");
   }
   return profile;

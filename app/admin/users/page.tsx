@@ -19,9 +19,6 @@ export default async function AdminUsersPage({
     <AppShell profile={profile}>
       <p className="field-caption">Admin</p>
       <h1 className="page-title mt-1">Users</h1>
-      <p className="page-lede">
-        Create and manage real accounts. Lists show database rows only.
-      </p>
       <UsersManager
         users={users}
         roleFilter={roleFilter}

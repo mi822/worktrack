@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import os from "node:os";
+import { cache } from "react";
 
 function firstLanIPv4(): string | null {
   const candidates: string[] = [];
@@ -22,7 +23,7 @@ function firstLanIPv4(): string | null {
  * header is rewritten to the machine’s LAN address so the QR is not
  * stuck on the computer.
  */
-export async function phoneReachableOrigin(): Promise<string> {
+export const phoneReachableOrigin = cache(async (): Promise<string> => {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   if (fromEnv) {
     return fromEnv;
@@ -47,7 +48,7 @@ export async function phoneReachableOrigin(): Promise<string> {
       ? forwardedProto
       : "http";
   return `${proto}://${host}`;
-}
+});
 
 export async function qrScanUrl(token: string): Promise<string> {
   const origin = await phoneReachableOrigin();
