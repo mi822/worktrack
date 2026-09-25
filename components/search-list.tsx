@@ -44,7 +44,7 @@ export function SearchList({
           <EmptyNote title="No matches.">Try a different name or word.</EmptyNote>
         </div>
       ) : (
-        <ul className="mt-4 divide-y divide-line">
+        <ul className="card-list mt-4">
           {filtered.map((item) => (
             <Fragment key={item.key}>{item.node}</Fragment>
           ))}

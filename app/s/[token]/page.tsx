@@ -1,11 +1,23 @@
 import { PresenceResult } from "@/app/scan/presence-result";
 import { AppShell } from "@/components/app-shell";
+import { EmptyNote, PageHeader } from "@/components/dashboard/ui";
 import { requireScanner } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/format-date";
 import {
   getMyPresenceToday,
   recordPresenceScan,
 } from "@/lib/presence/presence-actions";
+
+function PresenceHeader() {
+  return (
+    <PageHeader
+      icon="/scan"
+      caption="Presence"
+      title="Today's presence"
+      description="Scan the office QR code to record that you are here"
+    />
+  );
+}
 
 export default async function ShortScanPage({
   params,
@@ -19,11 +31,10 @@ export default async function ShortScanPage({
   if (!today.configured) {
     return (
       <AppShell profile={profile}>
-        <p className="field-caption">Presence</p>
-        <h1 className="page-title mt-1">Today&apos;s Presence</h1>
-        <p className="mt-6 rounded-lg border border-dashed border-line bg-white px-4 py-6 text-center text-sm text-muted">
-          Working hours are not configured.
-        </p>
+        <PresenceHeader />
+        <div className="mt-6">
+          <EmptyNote>Working hours are not configured.</EmptyNote>
+        </div>
       </AppShell>
     );
   }
@@ -31,8 +42,7 @@ export default async function ShortScanPage({
   if (today.record) {
     return (
       <AppShell profile={profile}>
-        <p className="field-caption">Presence</p>
-        <h1 className="page-title mt-1">Today&apos;s Presence</h1>
+        <PresenceHeader />
         <PresenceResult
           alreadyRecorded
           recordedStatus={today.record.status}
@@ -48,8 +58,7 @@ export default async function ShortScanPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">Presence</p>
-      <h1 className="page-title mt-1">Today&apos;s Presence</h1>
+      <PresenceHeader />
       <PresenceResult
         alreadyRecorded={result.alreadyRecorded}
         recordedStatus={result.recorded ? result.status : null}

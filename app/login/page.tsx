@@ -17,7 +17,7 @@ export default async function LoginPage({
     <div className="relative flex min-h-full flex-col items-center justify-center px-4 py-12">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(29,78,216,0.12),transparent_55%),linear-gradient(180deg,#eef1f6_0%,#f5f6f8_42%,#f5f6f8_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.16),transparent_55%),linear-gradient(180deg,#e4ecf9_0%,#eef3fb_42%,#eef3fb_100%)]"
       />
       <div
         aria-hidden="true"
@@ -27,12 +27,12 @@ export default async function LoginPage({
       <div className="relative w-full max-w-[400px]">
         <div className="mb-8 flex flex-col items-center text-center">
           <BrandMark className="h-11 w-11" />
-          <h1 className="font-display mt-4 text-[2rem] font-semibold tracking-tight text-ink sm:text-[2.15rem]">
+          <h1 className="font-display mt-4 text-[2rem] font-bold tracking-tight text-ink sm:text-[2.15rem]">
             WorkTrack
           </h1>
         </div>
 
-        <div className="rounded-xl border border-line bg-white px-6 py-7 sm:px-7 sm:py-8">
+        <div className="rounded-3xl bg-white px-6 py-7 shadow-[0_12px_40px_rgba(15,23,42,0.08)] sm:px-7 sm:py-8">
           <p className="mb-6 text-center text-sm font-medium text-ink-soft">
             Sign in
           </p>

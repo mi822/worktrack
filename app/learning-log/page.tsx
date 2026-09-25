@@ -1,5 +1,7 @@
 import { InternLogForm } from "@/app/learning-log/log-form";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader, StatusPill } from "@/components/dashboard/ui";
+import { formatDate } from "@/lib/format-date";
 import { requireIntern } from "@/lib/auth";
 import { getTodayInternLog } from "@/lib/logs/queries";
 import { currentWorkDate } from "@/lib/logs/work-date";
@@ -18,13 +20,17 @@ export default async function LearningLogPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">Intern</p>
-      <h1 className="page-title mt-1">Learning log</h1>
-      {log ? null : (
-        <p className="mt-6 rounded-xl border border-dashed border-line bg-canvas/60 px-4 py-3 text-sm text-muted">
-          Not submitted.
-        </p>
-      )}
+      <PageHeader
+        icon="/learning-log"
+        caption="Intern"
+        title="Learning log"
+        description={`What you learned today · ${formatDate(date)}`}
+        actions={
+          <StatusPill tone={log ? "ok" : "warn"}>
+            {log ? "Submitted" : "Not submitted"}
+          </StatusPill>
+        }
+      />
       <InternLogForm log={log} error={error} saved={saved} />
     </AppShell>
   );

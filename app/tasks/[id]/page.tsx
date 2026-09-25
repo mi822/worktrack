@@ -4,7 +4,14 @@ import {
 } from "@/app/tasks/task-actions";
 import { AppShell } from "@/components/app-shell";
 import { DocumentPanel } from "@/components/documents/document-panel";
-import { StatusPill } from "@/components/dashboard/ui";
+import {
+  BackLink,
+  PageHeader,
+  SectionHeader,
+  Stat,
+  StatGrid,
+  StatusPill,
+} from "@/components/dashboard/ui";
 import { requireTaskAccess } from "@/lib/auth";
 import { listProjectDocuments } from "@/lib/documents/queries";
 import { formatDate, formatDateTime } from "@/lib/format-date";
@@ -20,7 +27,6 @@ import {
   listTaskSubmissions,
 } from "@/lib/work/queries";
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from "@/lib/work/types";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 function deadlineTone(state: DeadlineState) {
@@ -70,45 +76,37 @@ export default async function TaskDetailPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">
-        {isHead ? "Project head" : isManager ? "Manager" : "Task"}
-      </p>
-      <h1 className="page-title mt-1">{task.description}</h1>
-      <p className="mt-2 flex flex-wrap items-center gap-2">
-        <StatusPill tone="muted">{TASK_STATUS_LABEL[task.status]}</StatusPill>
-        <StatusPill tone={deadlineTone(due)}>
-          {DEADLINE_STATE_LABEL[due]}
-        </StatusPill>
-        <span className="text-sm text-muted">
-          {TASK_PRIORITY_LABEL[task.priority]} · due {formatDate(task.deadline)}
-        </span>
-      </p>
-      <p className="mt-4 text-sm">
-        <Link
-          href={backHref}
-          className="text-muted underline-offset-2 hover:text-ink hover:underline"
-        >
-          {isHead || isManager ? "Back to project" : "Back to tasks"}
-        </Link>
-      </p>
+      <BackLink href={backHref}>
+        {isHead || isManager ? "Back to project" : "Back to tasks"}
+      </BackLink>
+      <PageHeader
+        icon="/tasks"
+        caption={task.project_title ?? "Task"}
+        title={task.description}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            <StatusPill tone="muted">{TASK_STATUS_LABEL[task.status]}</StatusPill>
+            <StatusPill tone={deadlineTone(due)}>{DEADLINE_STATE_LABEL[due]}</StatusPill>
+          </span>
+        }
+      />
 
       {error ? <p className="alert-error mt-6">{error}</p> : null}
 
-      <section className="panel mt-8 grid gap-4 p-6 text-sm min-[480px]:grid-cols-2">
-        <p>
-          <span className="field-caption block">Project</span>
-          {task.project_title ?? "—"}
-        </p>
-        <p>
-          <span className="field-caption block">Assignee</span>
-          {task.assignee_name ?? "—"}
-        </p>
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader icon="/projects" title="Details" />
+        <StatGrid>
+          <Stat label="Project" value={task.project_title ?? "—"} tone="action" icon="/projects" />
+          <Stat label="Assignee" value={task.assignee_name ?? "—"} tone="violet" icon="user" />
+          <Stat label="Priority" value={TASK_PRIORITY_LABEL[task.priority]} tone="warn" icon="alert" />
+          <Stat label="Deadline" value={formatDate(task.deadline)} tone={deadlineTone(due)} icon="/attendance" />
+        </StatGrid>
       </section>
 
       {isAssignee ? (
-        <section className="panel mt-6 p-6">
-          <h2 className="text-sm font-semibold tracking-tight">Your work</h2>
-          <div className="mt-4">
+        <section className="panel mt-6 p-5 sm:p-6">
+          <SectionHeader icon="/tasks" title="Your work" description="Start, submit or resume this task" />
+          <div>
             <AssigneeTaskActions taskId={task.id} status={task.status} />
             {task.status === "submitted" ? (
               <p className="text-sm text-muted">Waiting for review.</p>
@@ -130,9 +128,9 @@ export default async function TaskDetailPage({
       ) : null}
 
       {canReview ? (
-        <section className="panel mt-6 p-6">
-          <h2 className="text-sm font-semibold tracking-tight">Review</h2>
-          <div className="mt-4">
+        <section className="panel mt-6 p-5 sm:p-6">
+          <SectionHeader icon="check" title="Review" description="Approve or reject the submitted work" />
+          <div>
             <HeadReviewActions taskId={task.id} status={task.status} />
             {task.status === "assigned" ? (
               <p className="text-sm text-muted">
@@ -158,13 +156,13 @@ export default async function TaskDetailPage({
       ) : null}
 
       {feedback.length > 0 ? (
-        <section className="panel mt-6 p-6">
-          <h2 className="text-sm font-semibold tracking-tight">Feedback</h2>
-          <ul className="mt-4 space-y-3 text-sm">
+        <section className="panel mt-6 p-5 sm:p-6">
+          <SectionHeader icon="/surveys" title="Feedback" description="Why the work was sent back" />
+          <ul className="card-list text-sm">
             {feedback.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className="card-row flex-col gap-0">
                 <p className="text-ink">{item.reason}</p>
-                <p className="mt-1 text-muted">{formatDateTime(item.created_at)}</p>
+                <p className="mt-1 text-xs text-muted">{formatDateTime(item.created_at)}</p>
               </li>
             ))}
           </ul>
@@ -180,15 +178,15 @@ export default async function TaskDetailPage({
       />
 
       {submissions.length > 0 ? (
-        <section className="panel mt-6 p-6">
-          <h2 className="text-sm font-semibold tracking-tight">Submissions</h2>
-          <ul className="mt-4 space-y-3 text-sm">
+        <section className="panel mt-6 p-5 sm:p-6">
+          <SectionHeader icon="/documents" title="Submissions" description="Work handed in for review" />
+          <ul className="card-list text-sm">
             {submissions.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className="card-row flex-col gap-0">
                 <p className="text-ink">
                   {item.notes.trim() ? item.notes : "Submitted with no notes."}
                 </p>
-                <p className="mt-1 text-muted">{formatDateTime(item.created_at)}</p>
+                <p className="mt-1 text-xs text-muted">{formatDateTime(item.created_at)}</p>
               </li>
             ))}
           </ul>

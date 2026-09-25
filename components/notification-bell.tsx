@@ -52,7 +52,7 @@ export function NotificationBell({
     <div className="relative" ref={rootRef}>
       <button
         type="button"
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-ink transition hover:bg-canvas"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink transition hover:bg-canvas"
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label="Notifications"

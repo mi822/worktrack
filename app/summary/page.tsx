@@ -1,5 +1,7 @@
 import { EmployeeSummaryForm } from "@/app/summary/summary-form";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader, StatusPill } from "@/components/dashboard/ui";
+import { formatDate } from "@/lib/format-date";
 import { requireEmployee } from "@/lib/auth";
 import { getTodayEmployeeSummary } from "@/lib/logs/queries";
 import { currentWorkDate } from "@/lib/logs/work-date";
@@ -18,13 +20,17 @@ export default async function SummaryPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">Employee</p>
-      <h1 className="page-title mt-1">End of day</h1>
-      {summary ? null : (
-        <p className="mt-6 rounded-xl border border-dashed border-line bg-canvas/60 px-4 py-3 text-sm text-muted">
-          Not submitted.
-        </p>
-      )}
+      <PageHeader
+        icon="/summary"
+        caption="Employee"
+        title="End of day"
+        description={`Your daily summary · ${formatDate(date)}`}
+        actions={
+          <StatusPill tone={summary ? "ok" : "warn"}>
+            {summary ? "Submitted" : "Not submitted"}
+          </StatusPill>
+        }
+      />
       <EmployeeSummaryForm summary={summary} error={error} saved={saved} />
     </AppShell>
   );

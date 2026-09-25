@@ -1,4 +1,5 @@
 import { SaveHoursButton } from "@/app/admin/hours/save-hours-button";
+import { SectionHeader } from "@/components/dashboard/ui";
 import { saveWorkSchedule } from "@/lib/presence/schedule-actions";
 import { toInputTime } from "@/lib/presence/schedule-input";
 import {
@@ -23,10 +24,15 @@ export function HoursForm({
   saved?: boolean;
 }) {
   return (
-    <form action={saveWorkSchedule} autoComplete="off" className="panel mt-8 space-y-6 p-6">
+    <form action={saveWorkSchedule} autoComplete="off" className="panel mt-6 space-y-6 p-5 sm:p-6">
+      <SectionHeader
+        icon="/timesheet"
+        title="Schedule"
+        description="Used for presence, lateness and timesheets"
+      />
       {error ? <p className="alert-error">{error}</p> : null}
       {saved ? (
-        <p className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink">
+        <p className="rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">
           Hours saved.
         </p>
       ) : null}

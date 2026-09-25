@@ -13,20 +13,34 @@ import { ensureReminderNotifications } from "@/lib/notifications/reminders";
 import { after } from "next/server";
 import { Suspense } from "react";
 
-async function EmployeeHome({ notice }: { notice?: string | null }) {
+async function EmployeeHome({
+  name,
+  notice,
+}: {
+  name: string;
+  notice?: string | null;
+}) {
   return (
     <WorkerHome
       role="employee"
+      name={name}
       data={await getEmployeeDashboard()}
       notice={notice}
     />
   );
 }
 
-async function InternHome({ notice }: { notice?: string | null }) {
+async function InternHome({
+  name,
+  notice,
+}: {
+  name: string;
+  notice?: string | null;
+}) {
   return (
     <WorkerHome
       role="intern"
+      name={name}
       data={await getInternDashboard()}
       notice={notice}
     />
@@ -56,9 +70,9 @@ export default async function HomePage({
         ) : profile.role === "project_head" ? (
           <HeadDashboard notice={notice} />
         ) : profile.role === "employee" ? (
-          <EmployeeHome notice={notice} />
+          <EmployeeHome name={profile.full_name} notice={notice} />
         ) : (
-          <InternHome notice={notice} />
+          <InternHome name={profile.full_name} notice={notice} />
         )}
       </Suspense>
     </AppShell>

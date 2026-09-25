@@ -1,3 +1,4 @@
+import { SectionHeader } from "@/components/dashboard/ui";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { saveEmployeeSummary } from "@/lib/logs/actions";
 import type { EmployeeSummary } from "@/lib/logs/types";
@@ -12,10 +13,15 @@ export function EmployeeSummaryForm({
   saved: boolean;
 }) {
   return (
-    <form action={saveEmployeeSummary} className="panel mt-8 space-y-5 p-6">
+    <form action={saveEmployeeSummary} className="panel mt-6 space-y-5 p-5 sm:p-6">
+      <SectionHeader
+        icon="/summary"
+        title="Today's summary"
+        description="Work completed, challenges, progress and plans"
+      />
       {error ? <p className="alert-error">{error}</p> : null}
       {saved ? (
-        <p className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink">
+        <p className="rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">
           Summary saved.
         </p>
       ) : null}

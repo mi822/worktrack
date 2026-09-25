@@ -7,7 +7,7 @@ export function FormSubmitButton({
   pendingLabel,
   className = "btn-primary",
 }: {
-  children: string;
+  children: React.ReactNode;
   pendingLabel: string;
   className?: string;
 }) {

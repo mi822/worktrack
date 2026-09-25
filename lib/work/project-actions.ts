@@ -1,7 +1,9 @@
 "use server";
 
+import { DOCUMENT_BUCKET } from "@/lib/documents/types";
 import { notifyUser } from "@/lib/notifications/queries";
 import { requireManager, requireProjectHead } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { parseIdParam, parseProjectInput, workActionError } from "@/lib/work/parse";
 import { revalidatePath } from "next/cache";
@@ -208,4 +210,57 @@ export async function closeProject(formData: FormData) {
   revalidatePath(path);
   revalidatePath("/");
   redirect(`${path}?closed=1`);
+}
+
+export async function deleteProject(formData: FormData) {
+  const profile = await requireManager();
+  const id = parseIdParam(String(formData.get("id") ?? ""));
+  if (!id) {
+    fail("/projects", "That project was not found.");
+  }
+
+  const path = `/projects/${id}`;
+  const supabase = await createClient();
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id, manager_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!project || project.manager_id !== profile.id) {
+    fail(path, "You are not allowed to delete this project.");
+  }
+
+  const { data: documents } = await supabase
+    .from("documents")
+    .select("storage_path")
+    .eq("project_id", id);
+  const storagePaths = (documents ?? []).map((row) => row.storage_path);
+
+  const { data: deleted, error } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !deleted) {
+    fail(
+      path,
+      workActionError("Unable to delete the project.", error?.message),
+    );
+  }
+
+  if (storagePaths.length > 0) {
+    try {
+      await createAdminClient().storage.from(DOCUMENT_BUCKET).remove(storagePaths);
+    } catch {
+      // Leftover files must not undo a completed delete.
+    }
+  }
+
+  revalidatePath("/projects");
+  revalidatePath("/documents");
+  revalidatePath("/");
+  redirect("/projects?deleted=1");
 }

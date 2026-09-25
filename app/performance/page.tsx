@@ -1,5 +1,7 @@
 import { AppShell } from "@/components/app-shell";
+import { EmptyNote, PageHeader, SectionHeader } from "@/components/dashboard/ui";
 import { requirePerformanceAccess } from "@/lib/auth";
+import { initials } from "@/lib/initials";
 import {
   getPerformanceWeights,
   listPerformanceSubjects,
@@ -23,39 +25,53 @@ export default async function PerformancePage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">{ROLE_LABEL[profile.role]}</p>
-      <h1 className="page-title mt-1">Performance</h1>
+      <PageHeader
+        icon="/performance"
+        caption={ROLE_LABEL[profile.role]}
+        title="Performance"
+        description="Scores from tasks, attendance and participation"
+      />
       {error ? <p className="alert-error mt-6">{error}</p> : null}
       {saved ? (
-        <p className="mt-6 rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink">
+        <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">
           Saved.
         </p>
       ) : null}
 
       {weights ? (
-        <section className="panel mt-8 p-6">
-          <h2 className="text-sm font-semibold tracking-tight">Score weights</h2>
-          <p className="mt-1 text-sm text-muted">Must add up to 1.00.</p>
+        <section className="panel mt-6 p-5 sm:p-6">
+          <SectionHeader
+            icon="percent"
+            title="Score weights"
+            description="Must add up to 1.00"
+          />
           <PerformanceWeightsForm weights={weights} />
         </section>
       ) : null}
 
-      <section className="panel mt-6 p-6">
-        <h2 className="text-sm font-semibold tracking-tight">People</h2>
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader
+          icon="/admin/users"
+          title="People"
+          description="Open a person to see their performance report"
+        />
         {subjects.length === 0 ? (
-          <p className="mt-4 rounded-xl border border-dashed border-line bg-surface px-4 py-8 text-center text-sm text-muted">
-            No employees or interns in scope.
-          </p>
+          <EmptyNote>No employees or interns in scope.</EmptyNote>
         ) : (
-          <ul className="mt-4 divide-y divide-line">
+          <ul className="card-list">
             {subjects.map((subject) => (
-              <li key={subject.id} className="py-3 first:pt-0 last:pb-0">
+              <li key={subject.id}>
                 <Link
                   href={`/performance/${subject.id}`}
-                  className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-action/20"
+                  className="card-row items-center outline-none focus-visible:ring-2 focus-visible:ring-action/20"
                 >
-                  <p className="text-sm font-medium text-ink">{subject.full_name}</p>
-                  <p className="mt-1 text-sm text-muted">{ROLE_LABEL[subject.role]}</p>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-action/10 text-xs font-bold text-action">
+                    {initials(subject.full_name)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink">{subject.full_name}</p>
+                    <p className="mt-0.5 text-sm text-muted">{ROLE_LABEL[subject.role]}</p>
+                  </div>
                 </Link>
               </li>
             ))}

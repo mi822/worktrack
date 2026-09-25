@@ -1,6 +1,11 @@
-const iconClass = "h-4 w-4 shrink-0";
-
-export function NavIcon({ href }: { href: string }) {
+export function NavIcon({
+  href,
+  size = "md",
+}: {
+  href: string;
+  size?: "md" | "lg";
+}) {
+  const iconClass = size === "lg" ? "h-5 w-5 shrink-0" : "h-4 w-4 shrink-0";
   switch (href) {
     case "/":
       return (
@@ -33,6 +38,7 @@ export function NavIcon({ href }: { href: string }) {
         </svg>
       );
     case "/admin/hours":
+    case "/timesheet":
       return (
         <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.4" />
@@ -82,6 +88,107 @@ export function NavIcon({ href }: { href: string }) {
         <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M3.5 4h9M3.5 8h9M3.5 12h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
           <path d="M3.5 4 5 5.5 7 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "/performance":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M2.5 13.5h11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M4.5 11V8.5M8 11V5M11.5 11V3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      );
+    case "/surveys":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path
+            d="M3 4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7l-3 2.5V11a1 1 0 0 1-1-1V4Z"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+          />
+          <path d="M5.5 6h5M5.5 8h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      );
+    case "/documents":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path
+            d="M4 2.5h5l3 3v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1Z"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+          />
+          <path d="M9 2.5v3h3" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+        </svg>
+      );
+    case "plus":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "search":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+          <path d="m10.5 10.5 3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      );
+    case "percent":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="m12.5 3.5-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <circle cx="4.5" cy="4.5" r="1.6" stroke="currentColor" strokeWidth="1.4" />
+          <circle cx="11.5" cy="11.5" r="1.6" stroke="currentColor" strokeWidth="1.4" />
+        </svg>
+      );
+    case "logout":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M6.5 2.5H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M10 5l3 3-3 3M13 8H6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "arrow-right":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "chevron-down":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "alert":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 2.5 14 13H2L8 2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+          <path d="M8 6.5v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <circle cx="8" cy="11.2" r=".8" fill="currentColor" />
+        </svg>
+      );
+    case "check":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.4" />
+          <path d="m5.5 8 1.8 1.8L10.8 6.3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "user":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M3 13.5c.5-2.4 2.5-3.8 5-3.8s4.5 1.4 5 3.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      );
+    case "more":
+      return (
+        <svg className={iconClass} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="3.5" cy="8" r="1.2" fill="currentColor" />
+          <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+          <circle cx="12.5" cy="8" r="1.2" fill="currentColor" />
         </svg>
       );
     default:

@@ -1,3 +1,4 @@
+import { SectionHeader } from "@/components/dashboard/ui";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import {
   createProject,
@@ -17,7 +18,12 @@ export function ProjectForm({
   const action = project ? updateProject : createProject;
 
   return (
-    <form action={action} className="panel mt-8 space-y-6 p-6">
+    <form action={action} className="panel mt-6 space-y-6 p-5 sm:p-6">
+      <SectionHeader
+        icon="/projects"
+        title="Project details"
+        description="Title, dates, budget and project head"
+      />
       {error ? <p className="alert-error">{error}</p> : null}
       {project ? <input type="hidden" name="id" value={project.id} /> : null}
 

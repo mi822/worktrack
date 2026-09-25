@@ -1,5 +1,6 @@
 import { AttendanceTable } from "@/components/attendance-table";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader, SectionHeader } from "@/components/dashboard/ui";
 import { PageFallback } from "@/components/page-fallback";
 import { requireAdmin } from "@/lib/auth";
 import { listPresenceRecords } from "@/lib/presence/attendance-actions";
@@ -10,9 +11,14 @@ export default async function AdminAttendancePage() {
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">Admin</p>
-      <h1 className="page-title mt-1">Attendance</h1>
-      <section className="panel mt-8 p-6">
+      <PageHeader
+        icon="/attendance"
+        caption="Admin"
+        title="Attendance"
+        description="Every presence record, newest first"
+      />
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader icon="/attendance" title="Presence records" />
         <Suspense fallback={<PageFallback />}>
           <AttendanceBody />
         </Suspense>

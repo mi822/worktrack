@@ -13,7 +13,7 @@ export async function NotificationBellSlot({
 export function NotificationBellFallback() {
   return (
     <div
-      className="inline-flex h-9 w-9 rounded-lg border border-line bg-white"
+      className="inline-flex h-10 w-10 rounded-full border border-line bg-white"
       aria-hidden="true"
     />
   );

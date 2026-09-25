@@ -1,4 +1,4 @@
-import { EmptyNote, StatusPill } from "@/components/dashboard/ui";
+import { EmptyNote, IconTile, StatusPill } from "@/components/dashboard/ui";
 import { EMPTY_TASKS, EMPTY_TASKS_HINT } from "@/lib/dashboards/empty-copy";
 import { formatDate } from "@/lib/format-date";
 import {
@@ -50,30 +50,33 @@ export function AttentionList({
           <span className="font-semibold text-ink">{overdueCount}</span>
         </p>
       ) : null}
-      <ul className="divide-y divide-line">
-      {tasks.map((task) => {
-        const overdue = task.deadline < workDate && task.status !== "approved";
-        return (
-          <li key={task.id} className="py-4 first:pt-0 last:pb-0">
-            <Link
-              href={`/tasks/${task.id}`}
-              className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-action/20"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-ink">{task.description}</p>
-                <StatusPill tone={overdue ? "bad" : taskTone(task.status)}>
-                  {overdue ? "Overdue" : TASK_STATUS_LABEL[task.status]}
-                </StatusPill>
-              </div>
-              <p className="mt-1 text-sm text-muted">
-                {formatDate(task.deadline)}
-                {task.assignee_name ? ` · ${task.assignee_name}` : ""}
-                {task.project_title ? ` · ${task.project_title}` : ""}
-              </p>
-            </Link>
-          </li>
-        );
-      })}
+      <ul className="card-list">
+        {tasks.map((task) => {
+          const overdue = task.deadline < workDate && task.status !== "approved";
+          return (
+            <li key={task.id}>
+              <Link
+                href={`/tasks/${task.id}`}
+                className="card-row outline-none focus-visible:ring-2 focus-visible:ring-action/20"
+              >
+                <IconTile label={task.project_title ?? task.description} seed={task.project_id} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-ink">{task.description}</p>
+                    <StatusPill tone={overdue ? "bad" : taskTone(task.status)}>
+                      {overdue ? "Overdue" : TASK_STATUS_LABEL[task.status]}
+                    </StatusPill>
+                  </div>
+                  <p className="mt-1 text-sm text-muted">
+                    {formatDate(task.deadline)}
+                    {task.assignee_name ? ` · ${task.assignee_name}` : ""}
+                    {task.project_title ? ` · ${task.project_title}` : ""}
+                  </p>
+                </div>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

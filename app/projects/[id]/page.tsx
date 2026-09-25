@@ -1,6 +1,8 @@
+import { DeleteProjectForm } from "@/app/projects/delete-project-form";
 import { TaskCreateForm } from "@/app/projects/task-create-form";
 import { ProjectProgressStats } from "@/app/projects/project-progress";
 import { AppShell } from "@/components/app-shell";
+import { BackLink, EmptyNote, IconTile, SectionHeader } from "@/components/dashboard/ui";
 import { DocumentPanel } from "@/components/documents/document-panel";
 import { requireManagerOrHead } from "@/lib/auth";
 import { listProjectDocuments } from "@/lib/documents/queries";
@@ -71,64 +73,71 @@ export default async function ProjectDetailPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">{isManager ? "Manager" : "Project head"}</p>
-      <h1 className="page-title mt-1">{project.title}</h1>
-      <p className="mt-2 text-sm text-muted">{project.description}</p>
-      <p className="mt-4 text-sm">
-        <Link href="/projects" className="text-muted underline-offset-2 hover:text-ink hover:underline">
-          Back to projects
-        </Link>
+      <div className="flex items-start justify-between gap-3">
+        <BackLink href="/projects">Back to projects</BackLink>
         {isManager && project.status !== "closed" ? (
-          <>
-            <span className="mx-2 text-muted">·</span>
-            <Link
-              href={`/projects/${project.id}/edit`}
-              className="text-muted underline-offset-2 hover:text-ink hover:underline"
-            >
-              Edit
-            </Link>
-          </>
+          <Link href={`/projects/${project.id}/edit`} className="btn-secondary h-9 px-4">
+            Edit project
+          </Link>
         ) : null}
-      </p>
+      </div>
 
       {error ? <p className="alert-error mt-6">{error}</p> : null}
       {saved ? (
-        <p className="mt-6 rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink">
+        <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">
           Project saved.
         </p>
       ) : null}
       {submitted ? (
-        <p className="mt-6 rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink">
+        <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">
           Project submitted to the manager for closure.
         </p>
       ) : null}
       {closed ? (
-        <p className="mt-6 rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink">
+        <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">
           Project closed.
         </p>
       ) : null}
 
-      <section className="panel mt-8 grid gap-4 p-6 text-sm min-[480px]:grid-cols-2">
-        <p>
-          <span className="field-caption block">Status</span>
-          {PROJECT_STATUS_LABEL[project.status]}
+      <section className="hero-card mt-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-white/70">
+          {isManager ? "Manager" : "Project head"}
         </p>
-        <p>
-          <span className="field-caption block">Start</span>
-          {formatDate(project.start_date)}
-        </p>
-        <p>
-          <span className="field-caption block">Deadline</span>
-          {formatDate(project.deadline)}
-        </p>
-        <p>
-          <span className="field-caption block">Budget</span>
-          {project.budget}
-        </p>
-        <p>
-          <span className="field-caption block">Project head</span>
-          {project.head_name ?? "Not assigned"}
-        </p>
+        <h1 className="mt-1 font-display text-[1.6rem] font-bold leading-tight tracking-tight sm:text-[1.85rem]">
+          {project.title}
+        </h1>
+        {project.description ? (
+          <p className="mt-2 text-sm text-white/80">{project.description}</p>
+        ) : null}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="hero-chip">Start {formatDate(project.start_date)}</span>
+          <span className="hero-chip">Budget {project.budget}</span>
+          <span className="hero-chip">
+            {project.head_name ?? "No project head"}
+          </span>
+        </div>
+        <dl className="mt-6 grid grid-cols-3 gap-2 border-t border-white/15 pt-5 text-center">
+          <div>
+            <dt className="text-xs text-white/70">Deadline</dt>
+            <dd className="mt-1 text-sm font-bold">{formatDate(project.deadline)}</dd>
+          </div>
+          <div className="border-x border-white/15">
+            <dt className="text-xs text-white/70">Approved</dt>
+            <dd className="mt-1 text-sm font-bold">
+              {project.progress.byStatus.approved}/{project.progress.total}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-white/70">Status</dt>
+            <dd className="mt-1 text-sm font-bold">
+              {PROJECT_STATUS_LABEL[project.status]}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader icon="/performance" title="Progress" description="Tasks by status" />
         <ProjectProgressStats progress={project.progress} />
       </section>
 
@@ -141,15 +150,13 @@ export default async function ProjectDetailPage({
       ) : null}
 
       {canSubmitForClosure ? (
-        <section className="panel mt-6 p-6">
-          <h2 className="text-sm font-semibold tracking-tight">
-            Submit to manager
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            All tasks are approved. Submit this project so the manager can close
-            it.
-          </p>
-          <form action={submitProjectForClosure} className="mt-4">
+        <section className="panel mt-6 p-5 sm:p-6">
+          <SectionHeader
+            icon="check"
+            title="Submit to manager"
+            description="All tasks are approved. Submit this project so the manager can close it."
+          />
+          <form action={submitProjectForClosure}>
             <input type="hidden" name="id" value={project.id} />
             <button type="submit" className="btn-primary">
               Submit to manager
@@ -159,7 +166,7 @@ export default async function ProjectDetailPage({
       ) : null}
 
       {isAssignedHead && project.status === "pending_closure" ? (
-        <p className="mt-6 rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink">
+        <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">
           Submitted to the manager. Waiting for them to close this project.
         </p>
       ) : null}
@@ -172,15 +179,13 @@ export default async function ProjectDetailPage({
       ) : null}
 
       {canClose ? (
-        <section className="panel mt-6 p-6">
-          <h2 className="text-sm font-semibold tracking-tight">
-            Close project
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            The project head submitted this work. Closing terminates the
-            project.
-          </p>
-          <form action={closeProject} className="mt-4">
+        <section className="panel mt-6 p-5 sm:p-6">
+          <SectionHeader
+            icon="check"
+            title="Close project"
+            description="The project head submitted this work. Closing terminates the project."
+          />
+          <form action={closeProject}>
             <input type="hidden" name="id" value={project.id} />
             <button type="submit" className="btn-primary">
               Close project
@@ -189,29 +194,37 @@ export default async function ProjectDetailPage({
         </section>
       ) : null}
 
-      <section className="panel mt-6 p-6">
-        <h2 className="text-sm font-semibold tracking-tight">Tasks</h2>
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader
+          icon="/tasks"
+          title="Tasks"
+          description={`${tasks.length} ${tasks.length === 1 ? "task" : "tasks"} on this project`}
+        />
         {tasks.length === 0 ? (
-          <p className="mt-4 rounded-xl border border-dashed border-line bg-canvas/60 px-4 py-8 text-center text-sm text-muted">
-            No tasks yet.
-          </p>
+          <EmptyNote>No tasks yet.</EmptyNote>
         ) : (
-          <ul className="mt-4 divide-y divide-line">
+          <ul className="card-list">
             {tasks.map((task) => (
-              <li key={task.id} className="py-3 first:pt-0 last:pb-0">
+              <li key={task.id}>
                 <Link
                   href={`/tasks/${task.id}`}
-                  className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-action/20"
+                  className="card-row outline-none focus-visible:ring-2 focus-visible:ring-action/20"
                 >
-                  <p className="text-sm font-medium text-ink">{task.description}</p>
-                  <p className="mt-1 text-sm text-muted">
-                    {TASK_STATUS_LABEL[task.status]}
-                    {" · "}
-                    {TASK_PRIORITY_LABEL[task.priority]}
-                    {" · "}
-                    {formatDate(task.deadline)}
-                    {task.assignee_name ? ` · ${task.assignee_name}` : ""}
-                  </p>
+                  <IconTile
+                    label={task.assignee_name ?? task.description}
+                    seed={task.id}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-ink">{task.description}</p>
+                    <p className="mt-1 text-sm text-muted">
+                      {TASK_STATUS_LABEL[task.status]}
+                      {" · "}
+                      {TASK_PRIORITY_LABEL[task.priority]}
+                      {" · "}
+                      {formatDate(task.deadline)}
+                      {task.assignee_name ? ` · ${task.assignee_name}` : ""}
+                    </p>
+                  </div>
                 </Link>
               </li>
             ))}
@@ -229,15 +242,24 @@ export default async function ProjectDetailPage({
       />
 
       {isHead && project.status === "active" ? (
-        <section className="panel mt-6 p-6">
-          <h2 className="text-sm font-semibold tracking-tight">
-            Assign tasks
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            Assign as many tasks as you need. Each task goes to one employee or
-            intern.
-          </p>
+        <section className="panel mt-6 p-5 sm:p-6">
+          <SectionHeader
+            icon="plus"
+            title="Assign tasks"
+            description="Assign as many tasks as you need. Each task goes to one employee or intern."
+          />
           <TaskCreateForm projectId={project.id} workers={workers} />
+        </section>
+      ) : null}
+
+      {isOwningManager ? (
+        <section className="panel mt-6 border-bad/20 p-5 sm:p-6">
+          <SectionHeader
+            icon="alert"
+            title="Delete project"
+            description="Permanently removes this project with its tasks, submissions, and files."
+          />
+          <DeleteProjectForm projectId={project.id} title={project.title} />
         </section>
       ) : null}
     </AppShell>

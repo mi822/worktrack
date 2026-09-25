@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { EmptyNote } from "@/components/dashboard/ui";
+import { EmptyNote, PageHeader, SectionHeader } from "@/components/dashboard/ui";
 import { requireProfile } from "@/lib/auth";
 import {
   deleteDocument,
@@ -24,22 +24,31 @@ export default async function DocumentsPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">{ROLE_LABEL[profile.role]}</p>
-      <h1 className="page-title mt-1">Documents</h1>
+      <PageHeader
+        icon="/documents"
+        caption={ROLE_LABEL[profile.role]}
+        title="Documents"
+        description="Files shared on your projects and tasks"
+      />
       {error ? <p className="alert-error mt-6">{error}</p> : null}
       {saved ? (
-        <p className="mt-6 rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink">
+        <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">
           File saved.
         </p>
       ) : null}
-      <section className="panel mt-8 p-6">
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader
+          icon="/documents"
+          title="All files"
+          description={`${documents.length} ${documents.length === 1 ? "file" : "files"}`}
+        />
         {documents.length === 0 ? (
           <EmptyNote>No documents yet.</EmptyNote>
         ) : (
-          <ul className="divide-y divide-line">
+          <ul className="card-list">
             {documents.map((doc) => (
-              <li key={doc.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <div>
+              <li key={doc.id} className="card-row flex-wrap items-center justify-between">
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-ink">{doc.file_name}</p>
                   <p className="text-xs text-muted">
                     {doc.uploader_name} · {formatDateTime(doc.created_at)}

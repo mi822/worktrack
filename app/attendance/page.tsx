@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { EmptyNote, StatusPill } from "@/components/dashboard/ui";
+import { EmptyNote, PageHeader, SectionHeader, StatusPill } from "@/components/dashboard/ui";
 import { EMPTY_ATTENDANCE, EMPTY_ATTENDANCE_HINT } from "@/lib/dashboards/empty-copy";
 import { requireProfile } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/format-date";
@@ -21,9 +21,18 @@ export default async function MyAttendancePage() {
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">{ROLE_LABEL[profile.role]}</p>
-      <h1 className="page-title mt-1">My attendance</h1>
-      <section className="panel mt-8 p-6">
+      <PageHeader
+        icon="/attendance"
+        caption={ROLE_LABEL[profile.role]}
+        title="My attendance"
+        description="Your presence history"
+      />
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader
+          icon="/attendance"
+          title="History"
+          description={`${rows.length} ${rows.length === 1 ? "day" : "days"} recorded`}
+        />
         {rows.length === 0 ? (
           <EmptyNote title={EMPTY_ATTENDANCE}>{EMPTY_ATTENDANCE_HINT}</EmptyNote>
         ) : (

@@ -8,6 +8,14 @@ export const ROLE_HOME_LABEL: Record<AppRole, string> = {
   admin: "Admin home",
 };
 
+export const ROLE_HOME_INTRO: Record<AppRole, string> = {
+  intern: "Here's your work and learning for today.",
+  employee: "Here's your work for today.",
+  project_head: "Here's what your team is working on today.",
+  manager: "Here's how your projects and team are doing today.",
+  admin: "Here's what's happening with your team today.",
+};
+
 export const ROLE_LABEL: Record<AppRole, string> = {
   intern: "Intern",
   employee: "Employee",
@@ -82,4 +90,48 @@ export function navForRole(role: AppRole): NavItem[] {
     ];
   }
   return [home, scan, attendance, ...shared];
+}
+
+export type MobileTabs = {
+  left: NavItem[];
+  center: NavItem;
+  right: NavItem[];
+};
+
+export function mobileTabsForRole(role: AppRole): MobileTabs {
+  const home = { href: "/", label: "Home" };
+  const presence = { href: "/scan", label: "Presence" };
+  if (role === "admin") {
+    return {
+      left: [home, { href: "/admin/users", label: "Users" }],
+      center: { href: "/admin/qr", label: "QR" },
+      right: [{ href: "/admin/attendance", label: "Attendance" }],
+    };
+  }
+  if (role === "manager") {
+    return {
+      left: [home, { href: "/projects", label: "Projects" }],
+      center: { href: "/projects/new", label: "New project" },
+      right: [{ href: "/attendance", label: "Attendance" }],
+    };
+  }
+  if (role === "project_head") {
+    return {
+      left: [home, { href: "/projects", label: "Projects" }],
+      center: presence,
+      right: [{ href: "/intern-logs", label: "Logs" }],
+    };
+  }
+  if (role === "employee") {
+    return {
+      left: [home, { href: "/tasks", label: "Tasks" }],
+      center: presence,
+      right: [{ href: "/summary", label: "Summary" }],
+    };
+  }
+  return {
+    left: [home, { href: "/tasks", label: "Tasks" }],
+    center: presence,
+    right: [{ href: "/learning-log", label: "Log" }],
+  };
 }

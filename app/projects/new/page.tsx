@@ -1,8 +1,8 @@
 import { ProjectForm } from "@/app/projects/project-form";
 import { AppShell } from "@/components/app-shell";
+import { BackLink, PageHeader } from "@/components/dashboard/ui";
 import { requireManager } from "@/lib/auth";
 import { listAssignableHeads } from "@/lib/work/queries";
-import Link from "next/link";
 
 export default async function NewProjectPage({
   searchParams,
@@ -16,13 +16,13 @@ export default async function NewProjectPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">Manager</p>
-      <h1 className="page-title mt-1">New project</h1>
-      <p className="mt-4 text-sm">
-        <Link href="/projects" className="text-muted underline-offset-2 hover:text-ink hover:underline">
-          Back to projects
-        </Link>
-      </p>
+      <BackLink href="/projects">Back to projects</BackLink>
+      <PageHeader
+        icon="/projects"
+        caption="Manager"
+        title="New project"
+        description="Set the dates, budget and project head"
+      />
       <ProjectForm heads={heads} error={error} />
     </AppShell>
   );

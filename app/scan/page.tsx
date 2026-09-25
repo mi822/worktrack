@@ -1,5 +1,6 @@
 import { PresenceResult } from "@/app/scan/presence-result";
 import { AppShell } from "@/components/app-shell";
+import { EmptyNote, PageHeader } from "@/components/dashboard/ui";
 import { RegisterPresencePanel } from "@/components/register-presence-panel";
 import { requireScanner } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/format-date";
@@ -30,13 +31,17 @@ export default async function ScanPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">Presence</p>
-      <h1 className="page-title mt-1">Today&apos;s Presence</h1>
+      <PageHeader
+        icon="/scan"
+        caption="Presence"
+        title="Today's presence"
+        description="Scan the office QR code to record that you are here"
+      />
 
       {!today.configured ? (
-        <p className="mt-6 rounded-lg border border-dashed border-line bg-white px-4 py-6 text-center text-sm text-muted">
-          Working hours are not configured.
-        </p>
+        <div className="mt-6">
+          <EmptyNote>Working hours are not configured.</EmptyNote>
+        </div>
       ) : today.record ? (
         <div className="mt-6">
           <PresenceResult
@@ -50,9 +55,9 @@ export default async function ScanPage({
       ) : linkToken ? (
         <LinkScan token={linkToken} fullName={profile.full_name} />
       ) : !activeQr ? (
-        <p className="mt-6 rounded-lg border border-dashed border-line bg-white px-4 py-6 text-center text-sm text-muted">
-          {NO_ACTIVE_QR}
-        </p>
+        <div className="mt-6">
+          <EmptyNote>{NO_ACTIVE_QR}</EmptyNote>
+        </div>
       ) : (
         <div className="mt-6">
           <RegisterPresencePanel

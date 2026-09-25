@@ -1,6 +1,8 @@
 "use client";
 
+import { EmptyNote, SectionHeader, StatusPill } from "@/components/dashboard/ui";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { NavIcon } from "@/components/nav-icon";
 import { generateAndActivateQr, setQrActive } from "@/lib/presence/qr-actions";
 import type { QrCodeRow } from "@/lib/presence/types";
 import Link from "next/link";
@@ -24,12 +26,14 @@ export function QrManager({
     <div className="mt-6 space-y-6">
       {message ? <p className="alert-error">{message}</p> : null}
 
-      <section className="panel p-5">
-        <h2 className="text-sm font-semibold tracking-tight text-ink">
-          Presence QR code
-        </h2>
+      <section className="panel p-5 sm:p-6">
+        <SectionHeader
+          icon="plus"
+          title="New presence QR code"
+          description="Generating a new code replaces the current one"
+        />
         <form
-          className="mt-4 flex flex-wrap items-end gap-3"
+          className="flex flex-wrap items-end gap-3"
           action={async (formData) => {
             const result = await generateAndActivateQr(formData);
             setMessage(result.error);
@@ -53,11 +57,14 @@ export function QrManager({
       </section>
 
       {activeImage ? (
-        <section className="panel p-5">
-          <h2 className="text-sm font-semibold tracking-tight text-ink">
-            Active presence QR
-          </h2>
-          <div className="mt-4 inline-block border border-line bg-white p-3">
+        <section className="panel p-5 sm:p-6">
+          <SectionHeader
+            icon="/admin/qr"
+            title="Active presence QR"
+            description="People scan this code to record presence"
+            aside={<StatusPill tone="ok">Active</StatusPill>}
+          />
+          <div className="inline-block rounded-2xl border border-line bg-white p-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={activeImage}
@@ -66,46 +73,39 @@ export function QrManager({
             />
           </div>
           <div className="mt-4">
-            <Link href="/admin/qr/display" className="btn-primary">
+            <Link href="/admin/qr/display" className="btn-primary gap-2">
               Open large view
+              <NavIcon href="arrow-right" />
             </Link>
           </div>
         </section>
       ) : (
-        <p className="rounded-lg border border-dashed border-line bg-white px-4 py-6 text-center text-sm text-muted">
-          No active organization presence QR code.
-        </p>
+        <EmptyNote>No active organization presence QR code.</EmptyNote>
       )}
 
-      <section className="panel p-5">
-        <h2 className="text-sm font-semibold tracking-tight text-ink">
-          QR history
-        </h2>
+      <section className="panel p-5 sm:p-6">
+        <SectionHeader icon="/timesheet" title="QR history" description="Codes generated before" />
         {codes.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">No QR codes have been generated.</p>
+          <EmptyNote>No QR codes have been generated.</EmptyNote>
         ) : (
-          <ul className="mt-3 divide-y divide-line">
+          <ul className="card-list">
             {codes.map((code) => (
               <li
                 key={code.id}
-                className="flex flex-wrap items-center justify-between gap-3 py-3"
+                className="card-row flex-wrap items-center justify-between"
               >
                 <div>
-                  <p className="text-sm font-medium text-ink">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-ink">
                     Code {code.id}
                     {code.live ? (
-                      <span className="status-pill-ok ml-2">Active</span>
+                      <StatusPill tone="ok">Active</StatusPill>
                     ) : code.is_active ? (
-                      <span className="status-pill ml-2 bg-red-50 text-red-800">
-                        Expired
-                      </span>
+                      <StatusPill tone="bad">Expired</StatusPill>
                     ) : (
-                      <span className="status-pill ml-2 bg-stone-100 text-muted">
-                        Inactive
-                      </span>
+                      <StatusPill tone="muted">Inactive</StatusPill>
                     )}
                   </p>
-                  <p className="text-xs text-muted">{code.validUntilLabel}</p>
+                  <p className="mt-0.5 text-xs text-muted">{code.validUntilLabel}</p>
                 </div>
                 <form
                   action={async () => {

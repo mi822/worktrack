@@ -12,18 +12,15 @@ const DETAIL_STATUSES: TaskStatus[] = [
 
 export function ProjectProgressStats({ progress }: { progress: ProjectProgress }) {
   return (
-    <div className="min-[480px]:col-span-2">
-      <span className="field-caption block">Progress</span>
-      <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {DETAIL_STATUSES.map((status) => (
-          <p key={status} className="rounded-lg border border-line bg-canvas/60 px-3 py-2">
-            <span className="field-caption block">{TASK_STATUS_LABEL[status]}</span>
-            <span className="text-sm font-medium text-ink">
-              {progress.byStatus[status]}
-            </span>
-          </p>
-        ))}
-      </div>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {DETAIL_STATUSES.map((status) => (
+        <p key={status} className="stat-tile">
+          <span className="block text-xs font-medium text-muted">{TASK_STATUS_LABEL[status]}</span>
+          <span className="mt-1 block text-xl font-bold text-ink">
+            {progress.byStatus[status]}
+          </span>
+        </p>
+      ))}
     </div>
   );
 }

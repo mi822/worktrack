@@ -48,7 +48,11 @@ export async function TodayPresence({ notice }: { notice?: string | null }) {
   }
 
   return (
-    <DashSection caption="Today" title="Today's Presence">
+    <DashSection
+      title="Today's presence"
+      description="Your presence status for today"
+      icon="/scan"
+    >
       {body}
     </DashSection>
   );

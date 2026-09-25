@@ -1,5 +1,6 @@
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { AppShell } from "@/components/app-shell";
+import { BackLink, PageHeader, SectionHeader } from "@/components/dashboard/ui";
 import { requireProfile } from "@/lib/auth";
 import { ROLE_LABEL } from "@/lib/roles";
 import { createSurvey } from "@/lib/surveys/actions";
@@ -19,9 +20,15 @@ export default async function NewSurveyPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">{ROLE_LABEL[profile.role]}</p>
-      <h1 className="page-title mt-1">New survey</h1>
-      <form action={createSurvey} className="panel mt-8 space-y-4 p-6">
+      <BackLink href="/surveys">Back to surveys</BackLink>
+      <PageHeader
+        icon="/surveys"
+        caption={ROLE_LABEL[profile.role]}
+        title="New survey"
+        description="Create a survey, then add questions and publish it"
+      />
+      <form action={createSurvey} className="panel mt-6 space-y-4 p-5 sm:p-6">
+        <SectionHeader icon="plus" title="Survey details" />
         {error ? <p className="alert-error">{error}</p> : null}
         <label className="field-label">
           <span className="field-caption">Title</span>

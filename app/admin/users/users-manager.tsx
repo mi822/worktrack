@@ -1,6 +1,8 @@
 "use client";
 
+import { EmptyNote, SectionHeader, StatusPill } from "@/components/dashboard/ui";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { initials } from "@/lib/initials";
 import { ROLE_LABEL } from "@/lib/roles";
 import type { AppRole, Profile } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -41,16 +43,17 @@ export function UsersManager({
   }
 
   return (
-    <div className="mt-8 space-y-8">
+    <div className="mt-6 space-y-6">
       {message ? <p className="alert-error">{message}</p> : null}
 
-      <section className="panel p-6">
-        <h2 className="text-sm font-semibold tracking-tight">Create account</h2>
-        <p className="mt-1 text-sm text-muted">
-          New people sign in with the email and password you set here.
-        </p>
+      <section className="panel p-5 sm:p-6">
+        <SectionHeader
+          icon="plus"
+          title="Create account"
+          description="New people sign in with the email and password you set here"
+        />
         <form
-          className="mt-5 grid gap-4 min-[480px]:grid-cols-2"
+          className="grid gap-4 min-[480px]:grid-cols-2"
           action={async (formData) => {
             const result = await postAdminUsers(formData, "create");
             setMessage(result.error);
@@ -93,44 +96,54 @@ export function UsersManager({
         </form>
       </section>
 
-      <section className="panel p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold tracking-tight">Directory</h2>
-            <p className="mt-1 text-sm text-muted">
-              {users.length === 0
-                ? "No accounts match this filter."
-                : `${users.length} account${users.length === 1 ? "" : "s"}`}
-            </p>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-muted">
-            Role
-            <select
-              value={roleFilter ?? ""}
-              onChange={(event) => onFilterChange(event.target.value)}
-              className="field-input w-auto min-w-40"
-            >
-              <option value="">All roles</option>
-              {roles.map((role) => (
-                <option key={role} value={role}>
-                  {ROLE_LABEL[role]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+      <section className="panel p-5 sm:p-6">
+        <SectionHeader
+          icon="/admin/users"
+          title="Directory"
+          description={
+            users.length === 0
+              ? "No accounts match this filter"
+              : `${users.length} account${users.length === 1 ? "" : "s"}`
+          }
+          aside={
+            <label className="flex items-center gap-2 text-sm text-muted">
+              Role
+              <select
+                value={roleFilter ?? ""}
+                onChange={(event) => onFilterChange(event.target.value)}
+                className="field-input w-auto min-w-40"
+              >
+                <option value="">All roles</option>
+                {roles.map((role) => (
+                  <option key={role} value={role}>
+                    {ROLE_LABEL[role]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          }
+        />
 
         {users.length === 0 ? (
-          <p className="mt-6 rounded-xl border border-dashed border-line bg-canvas/60 px-4 py-8 text-center text-sm text-muted">
-            No users found.
-          </p>
+          <EmptyNote>No users found.</EmptyNote>
         ) : (
-          <ul className="mt-5 space-y-3">
+          <ul className="space-y-3">
             {users.map((user) => (
-              <li
-                key={user.id}
-                className="rounded-xl border border-line bg-canvas/50 p-4"
-              >
+              <li key={user.id} className="stat-tile">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-action/10 text-xs font-bold text-action">
+                    {initials(user.full_name)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">{user.full_name}</p>
+                    <p className="text-xs text-muted">{ROLE_LABEL[user.role]}</p>
+                  </div>
+                  <span className="ml-auto">
+                    <StatusPill tone={user.is_active ? "ok" : "muted"}>
+                      {user.is_active ? "Active" : "Inactive"}
+                    </StatusPill>
+                  </span>
+                </div>
                 <form
                   className="grid gap-4 min-[480px]:grid-cols-2 xl:grid-cols-4"
                   action={async (formData) => {
@@ -202,17 +215,6 @@ export function UsersManager({
                       {user.is_active ? "Deactivate" : "Activate"}
                     </button>
                   </div>
-                  <p className="min-[480px]:col-span-2 xl:col-span-4">
-                    <span
-                      className={
-                        user.is_active
-                          ? "status-pill-ok"
-                          : "status-pill bg-stone-200/80 text-muted"
-                      }
-                    >
-                      {user.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </p>
                 </form>
               </li>
             ))}

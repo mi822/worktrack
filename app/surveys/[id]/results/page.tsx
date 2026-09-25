@@ -1,7 +1,13 @@
 import { AppShell } from "@/components/app-shell";
-import { EmptyNote, Stat, StatGrid } from "@/components/dashboard/ui";
+import {
+  BackLink,
+  EmptyNote,
+  PageHeader,
+  SectionHeader,
+  Stat,
+  StatGrid,
+} from "@/components/dashboard/ui";
 import { requireProfile } from "@/lib/auth";
-import { ROLE_LABEL } from "@/lib/roles";
 import {
   canEditSurvey,
   getSurvey,
@@ -9,7 +15,6 @@ import {
   listSurveyQuestions,
 } from "@/lib/surveys/queries";
 import { parseIdParam } from "@/lib/work/parse";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export default async function SurveyResultsPage({
@@ -34,34 +39,29 @@ export default async function SurveyResultsPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">{ROLE_LABEL[profile.role]}</p>
-      <h1 className="page-title mt-1">Results · {survey.title}</h1>
-      <p className="mt-4 text-sm">
-        <Link href={`/surveys/${id}`} className="text-muted underline-offset-2 hover:text-ink hover:underline">
-          Back to survey
-        </Link>
-      </p>
-      <section className="panel mt-8 p-6">
+      <BackLink href={`/surveys/${id}`}>Back to survey</BackLink>
+      <PageHeader icon="/performance" caption="Survey results" title={survey.title} />
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader icon="/performance" title="Summary" description="Responses so far" />
         <StatGrid>
-          <Stat label="Responses" value={results.responseCount} />
+          <Stat label="Responses" value={results.responseCount} tone="action" icon="/admin/users" />
           <Stat
             label="Average rating"
             value={results.avgRating ?? "—"}
-            tone="action"
+            tone="violet"
+            icon="/surveys"
           />
         </StatGrid>
       </section>
-      <section className="panel mt-6 p-6">
-        <h2 className="text-sm font-semibold tracking-tight">Answers</h2>
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader icon="/surveys" title="Answers" description="Every answer, by person" />
         {results.answers.length === 0 ? (
-          <div className="mt-4">
-            <EmptyNote>No responses yet.</EmptyNote>
-          </div>
+          <EmptyNote>No responses yet.</EmptyNote>
         ) : (
-          <ul className="mt-4 divide-y divide-line text-sm">
+          <ul className="card-list text-sm">
             {results.answers.map((answer, index) => (
-              <li key={`${answer.respondent_id}-${answer.question_id}-${index}`} className="py-3">
-                <p className="font-medium text-ink">{answer.respondent_name}</p>
+              <li key={`${answer.respondent_id}-${answer.question_id}-${index}`} className="card-row flex-col gap-0">
+                <p className="font-semibold text-ink">{answer.respondent_name}</p>
                 <p className="text-muted">{prompts.get(answer.question_id)}</p>
                 <p className="mt-1 text-ink">
                   {answer.rating_value ??

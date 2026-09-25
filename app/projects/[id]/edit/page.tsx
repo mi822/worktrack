@@ -1,9 +1,9 @@
 import { ProjectForm } from "@/app/projects/project-form";
 import { AppShell } from "@/components/app-shell";
+import { BackLink, PageHeader } from "@/components/dashboard/ui";
 import { requireManager } from "@/lib/auth";
 import { parseIdParam } from "@/lib/work/parse";
 import { getProject, listAssignableHeads } from "@/lib/work/queries";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 export default async function EditProjectPage({
@@ -37,17 +37,8 @@ export default async function EditProjectPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">Manager</p>
-      <h1 className="page-title mt-1">Edit project</h1>
-      <p className="mt-2 text-sm text-muted">{project.title}</p>
-      <p className="mt-4 text-sm">
-        <Link
-          href={`/projects/${project.id}`}
-          className="text-muted underline-offset-2 hover:text-ink hover:underline"
-        >
-          Back to project
-        </Link>
-      </p>
+      <BackLink href={`/projects/${project.id}`}>Back to project</BackLink>
+      <PageHeader icon="/projects" caption="Edit project" title={project.title} />
       <ProjectForm project={project} heads={heads} error={error} />
     </AppShell>
   );

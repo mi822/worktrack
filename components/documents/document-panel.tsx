@@ -1,3 +1,4 @@
+import { EmptyNote, SectionHeader } from "@/components/dashboard/ui";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import {
   deleteDocument,
@@ -21,17 +22,19 @@ export function DocumentPanel({
   canUpload: boolean;
 }) {
   return (
-    <section className="panel mt-6 p-6">
-      <h2 className="text-sm font-semibold tracking-tight">Documents</h2>
+    <section className="panel mt-6 p-5 sm:p-6">
+      <SectionHeader
+        icon="/documents"
+        title="Documents"
+        description={`${documents.length} ${documents.length === 1 ? "file" : "files"}`}
+      />
       {documents.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-line bg-surface px-4 py-8 text-center text-sm text-muted">
-          No files yet.
-        </p>
+        <EmptyNote>No files yet.</EmptyNote>
       ) : (
-        <ul className="mt-4 divide-y divide-line">
+        <ul className="card-list">
           {documents.map((doc) => (
-            <li key={doc.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <div>
+            <li key={doc.id} className="card-row flex-wrap items-center justify-between">
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-ink">{doc.file_name}</p>
                 <p className="text-xs text-muted">
                   {doc.uploader_name} · {formatDateTime(doc.created_at)}

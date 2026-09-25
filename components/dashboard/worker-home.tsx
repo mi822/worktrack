@@ -2,6 +2,8 @@ import { TodayPresence } from "@/components/today-presence";
 import {
   DashSection,
   EmptyNote,
+  Greeting,
+  IconTile,
   ProgressBar,
   Stat,
   StatGrid,
@@ -16,7 +18,7 @@ import {
 } from "@/lib/dashboards/empty-copy";
 import type { WorkerDashboard } from "@/lib/dashboards/types";
 import { formatDate, formatDateTime } from "@/lib/format-date";
-import { ROLE_HOME_LABEL } from "@/lib/roles";
+import { ROLE_HOME_INTRO, ROLE_HOME_LABEL } from "@/lib/roles";
 import {
   TASK_PRIORITY_LABEL,
   TASK_STATUS_LABEL,
@@ -42,10 +44,12 @@ function taskTone(status: TaskStatus) {
 
 export function WorkerHome({
   role,
+  name,
   data,
   notice,
 }: {
   role: "employee" | "intern";
+  name: string;
   data: WorkerDashboard;
   notice?: string | null;
 }) {
@@ -56,23 +60,24 @@ export function WorkerHome({
 
   return (
     <>
-      <p className="field-caption">{role === "intern" ? "Intern" : "Employee"}</p>
-      <h1 className="page-title mt-1">{ROLE_HOME_LABEL[role]}</h1>
+      <Greeting
+        name={name}
+        caption={ROLE_HOME_LABEL[role]}
+        intro={ROLE_HOME_INTRO[role]}
+      />
 
       <TodayPresence notice={notice} />
 
-      <DashSection caption="Assigned" title="Your tasks">
+      <DashSection title="Your tasks" description="Tasks assigned to you" icon="/tasks">
         {data.tasks.length === 0 ? (
-          <div className="mt-4">
-            <EmptyNote title={EMPTY_TASKS}>{EMPTY_TASKS_HINT}</EmptyNote>
-          </div>
+          <EmptyNote title={EMPTY_TASKS}>{EMPTY_TASKS_HINT}</EmptyNote>
         ) : (
           <>
-            <p className="mt-3 text-sm text-muted">
+            <p className="text-sm text-muted">
               {approved} of {total} tasks approved
             </p>
             <ProgressBar value={approved} max={total} />
-            <ul className="mt-4 divide-y divide-line">
+            <ul className="card-list mt-4">
               {data.tasks.map((task) => {
                 const actionLabel =
                   task.status === "assigned"
@@ -86,8 +91,9 @@ export function WorkerHome({
                           ? "Waiting for review"
                           : null;
                 return (
-                  <li key={task.id} className="py-4 first:pt-0 last:pb-0">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                  <li key={task.id} className="card-row">
+                    <IconTile label={task.project_title ?? task.description} seed={task.project_id} />
+                    <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-3">
                       <Link
                         href={`/tasks/${task.id}`}
                         className="min-w-0 flex-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-action/20"
@@ -136,9 +142,9 @@ export function WorkerHome({
         )}
       </DashSection>
 
-      <DashSection caption="Today" title="Hours">
+      <DashSection title="Hours" description="Your time and attendance" icon="/timesheet">
         <StatGrid>
-          <Stat label="Hours today" value={data.hoursToday ?? "—"} />
+          <Stat label="Hours today" value={data.hoursToday ?? "—"} icon="/timesheet" tone="action" />
           <Stat
             label="Attendance"
             value={
@@ -146,62 +152,63 @@ export function WorkerHome({
                 ? "—"
                 : `${data.attendancePercent}%`
             }
-            tone="action"
+            icon="percent"
+            tone="ok"
           />
         </StatGrid>
       </DashSection>
 
-      <DashSection caption="This week" title="Your attendance">
+      <DashSection title="Your attendance" description="This week, day by day" icon="/attendance">
         {data.week.every((day) => day.present + day.late === 0) ? (
-          <div className="mt-4">
-            <EmptyNote title={NOT_RECORDED}>
-              Bars appear after you record presence on a working day.
-            </EmptyNote>
-          </div>
+          <EmptyNote title={NOT_RECORDED}>
+            Bars appear after you record presence on a working day.
+          </EmptyNote>
         ) : (
           <WeekBars days={data.week} />
         )}
       </DashSection>
 
-      <DashSection caption="Assigned" title="Feedback">
+      <DashSection title="Feedback" description="Notes from your reviewers" icon="/surveys">
         {data.feedback.length === 0 ? (
-          <div className="mt-4">
-            <EmptyNote>No feedback.</EmptyNote>
-          </div>
+          <EmptyNote>No feedback.</EmptyNote>
         ) : (
-          <ul className="mt-4 divide-y divide-line">
+          <ul className="card-list">
             {data.feedback.map((item) => (
-              <li key={item.id} className="py-4 first:pt-0 last:pb-0">
-                <p className="text-sm font-semibold text-ink">
-                  {item.task_description}
-                </p>
-                <p className="mt-1 text-sm text-muted">{item.reason}</p>
-                <p className="mt-1 text-xs text-muted">
-                  {formatDateTime(item.created_at)}
-                </p>
+              <li key={item.id} className="card-row">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-ink">
+                    {item.task_description}
+                  </p>
+                  <p className="mt-1 text-sm text-muted">{item.reason}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {formatDateTime(item.created_at)}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
         )}
       </DashSection>
 
-      <DashSection caption="Today" title={writeLabel}>
-        <div className="mt-4">
-          {data.dailyWriteSubmitted ? (
-            <StatGrid>
-              <Stat label="Status" value="Submitted" tone="ok" />
-            </StatGrid>
-          ) : (
-            <EmptyNote title={NOT_SUBMITTED}>
-              Open the form to write today’s {writeLabel.toLowerCase()}.
-            </EmptyNote>
-          )}
-          <p className="mt-4">
-            <Link href={writeHref} className="btn-secondary">
-              Open {writeLabel.toLowerCase()}
-            </Link>
-          </p>
-        </div>
+      <DashSection
+        title={writeLabel}
+        description="Today's written report"
+        icon={writeHref}
+      >
+        {data.dailyWriteSubmitted ? (
+          <StatGrid>
+            <Stat label="Status" value="Submitted" tone="ok" icon="check" />
+          </StatGrid>
+        ) : (
+          <EmptyNote title={NOT_SUBMITTED}>
+            Open the form to write today’s {writeLabel.toLowerCase()}.
+          </EmptyNote>
+        )}
+        <p className="mt-4">
+          <Link href={writeHref} className="btn-secondary">
+            Open {writeLabel.toLowerCase()}
+          </Link>
+        </p>
       </DashSection>
     </>
   );

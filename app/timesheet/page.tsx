@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { EmptyNote } from "@/components/dashboard/ui";
+import { EmptyNote, PageHeader, SectionHeader } from "@/components/dashboard/ui";
 import { requireProfile } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/format-date";
 import { calendarDateInZone } from "@/lib/logs/work-date";
@@ -33,45 +33,56 @@ export default async function TimesheetPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">{ROLE_LABEL[profile.role]}</p>
-      <h1 className="page-title mt-1">Timesheet</h1>
-      <p className="mt-4 text-sm">
-        <Link
-          href="/timesheet?view=week"
-          className="text-muted underline-offset-2 hover:text-ink hover:underline"
-        >
-          Week
-        </Link>
-        <span className="mx-2 text-muted">·</span>
-        <Link
-          href="/timesheet?view=month"
-          className="text-muted underline-offset-2 hover:text-ink hover:underline"
-        >
-          Month
-        </Link>
-      </p>
+      <PageHeader
+        icon="/timesheet"
+        caption={ROLE_LABEL[profile.role]}
+        title="Timesheet"
+        description={`${formatDate(range.start)} – ${formatDate(range.end)}`}
+        actions={
+          <div className="flex rounded-full border border-line bg-white p-1 text-sm font-semibold">
+            <Link
+              href="/timesheet?view=week"
+              className={
+                view === "week"
+                  ? "rounded-full bg-action px-4 py-1.5 text-white"
+                  : "rounded-full px-4 py-1.5 text-muted hover:text-ink"
+              }
+            >
+              Week
+            </Link>
+            <Link
+              href="/timesheet?view=month"
+              className={
+                view === "month"
+                  ? "rounded-full bg-action px-4 py-1.5 text-white"
+                  : "rounded-full px-4 py-1.5 text-muted hover:text-ink"
+              }
+            >
+              Month
+            </Link>
+          </div>
+        }
+      />
 
       {!schedule ? (
-        <div className="mt-8">
+        <div className="mt-6">
           <EmptyNote title="Hours not configured">
             Admin must set working hours before timesheets can be calculated.
           </EmptyNote>
         </div>
       ) : people.length === 0 ? (
-        <div className="mt-8">
+        <div className="mt-6">
           <EmptyNote>No people in scope.</EmptyNote>
         </div>
       ) : (
         people.map((person) => (
-          <section key={person.id} className="panel mt-8 overflow-x-auto p-6">
-            <h2 className="text-sm font-semibold tracking-tight">
-              {person.full_name}
-            </h2>
-            <p className="mt-1 text-sm text-muted">
-              {person.totals.actualHours} h worked of {person.totals.expectedHours} h
-              expected
-            </p>
-            <table className="mt-4 w-full min-w-[32rem] text-left text-sm">
+          <section key={person.id} className="panel mt-6 overflow-x-auto p-5 sm:p-6">
+            <SectionHeader
+              icon="user"
+              title={person.full_name}
+              description={`${person.totals.actualHours} h worked of ${person.totals.expectedHours} h expected`}
+            />
+            <table className="w-full min-w-[32rem] text-left text-sm">
               <thead>
                 <tr className="text-muted">
                   <th className="pb-2 font-medium">Date</th>

@@ -1,6 +1,6 @@
 "use client";
 
-import { EmptyNote, StatusPill } from "@/components/dashboard/ui";
+import { EmptyNote, IconTile, StatusPill } from "@/components/dashboard/ui";
 import { EMPTY_TASKS, EMPTY_TASKS_HINT } from "@/lib/dashboards/empty-copy";
 import { formatDate } from "@/lib/format-date";
 import {
@@ -106,7 +106,7 @@ export function TaskList({ tasks }: { tasks: TaskListItem[] }) {
           <EmptyNote title="No matches.">Try another status or word.</EmptyNote>
         </div>
       ) : (
-        <ul className="mt-4 divide-y divide-line">
+        <ul className="card-list mt-4">
           {filtered.map((task) => {
             const due = deadlineState(task.deadline, task.status, today);
             const actionLabel =
@@ -118,8 +118,9 @@ export function TaskList({ tasks }: { tasks: TaskListItem[] }) {
                     ? "Resume work"
                     : null;
             return (
-              <li key={task.id} className="py-3 first:pt-0 last:pb-0">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+              <li key={task.id} className="card-row">
+                <IconTile label={task.project_title ?? task.description} seed={task.project_id} />
+                <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-3">
                   <Link
                     href={`/tasks/${task.id}`}
                     className="min-w-0 flex-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-action/20"

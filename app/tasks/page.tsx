@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { PageHeader, SectionHeader } from "@/components/dashboard/ui";
 import { PageFallback } from "@/components/page-fallback";
 import { TaskList } from "@/components/task-list";
 import { requireWorker } from "@/lib/auth";
@@ -10,12 +11,15 @@ export default async function TasksPage() {
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">
-        {profile.role === "intern" ? "Intern" : "Employee"}
-      </p>
-      <h1 className="page-title mt-1">Tasks</h1>
+      <PageHeader
+        icon="/tasks"
+        caption={profile.role === "intern" ? "Intern" : "Employee"}
+        title="Tasks"
+        description="Everything assigned to you"
+      />
 
-      <section className="panel mt-8 p-6">
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader icon="/tasks" title="Your tasks" description="Open a task to start or submit work" />
         <Suspense fallback={<PageFallback />}>
           <AssignedTasks userId={profile.id} />
         </Suspense>

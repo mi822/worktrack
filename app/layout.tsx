@@ -1,19 +1,9 @@
 import type { Metadata } from "next";
-import { Manrope, Source_Sans_3, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const body = Source_Sans_3({
+const sans = Plus_Jakarta_Sans({
   variable: "--font-body",
-  subsets: ["latin"],
-});
-
-const display = Manrope({
-  variable: "--font-display-face",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
@@ -29,7 +19,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${body.variable} ${display.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${sans.variable} h-full antialiased`}
     >
       {supabaseOrigin ? (
         <head>

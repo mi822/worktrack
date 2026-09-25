@@ -1,9 +1,9 @@
 import { SurveyTakeForm } from "@/app/surveys/take-form";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { AppShell } from "@/components/app-shell";
+import { BackLink, PageHeader, SectionHeader } from "@/components/dashboard/ui";
 import { requireProfile } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format-date";
-import { ROLE_LABEL } from "@/lib/roles";
 import { setSurveyPublished } from "@/lib/surveys/actions";
 import {
   canEditSurvey,
@@ -44,53 +44,48 @@ export default async function SurveyDetailPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">{ROLE_LABEL[profile.role]}</p>
-      <h1 className="page-title mt-1">{survey.title}</h1>
-      <p className="mt-2 text-sm text-muted">
-        {survey.is_published ? "Published" : "Draft"}
-        {survey.description ? ` · ${survey.description}` : ""}
-      </p>
-      <p className="mt-4 text-sm">
-        <Link href="/surveys" className="text-muted underline-offset-2 hover:text-ink hover:underline">
-          Back to surveys
-        </Link>
-        {manage && !survey.is_published ? (
-          <>
-            <span className="mx-2 text-muted">·</span>
-            <Link href={`/surveys/${id}/edit`} className="text-muted underline-offset-2 hover:text-ink hover:underline">
-              Edit
-            </Link>
-          </>
-        ) : null}
-        {manage ? (
-          <>
-            <span className="mx-2 text-muted">·</span>
-            <Link href={`/surveys/${id}/results`} className="text-muted underline-offset-2 hover:text-ink hover:underline">
-              Results
-            </Link>
-          </>
-        ) : null}
-      </p>
+      <BackLink href="/surveys">Back to surveys</BackLink>
+      <PageHeader
+        icon="/surveys"
+        caption={survey.is_published ? "Published survey" : "Draft survey"}
+        title={survey.title}
+        description={survey.description || undefined}
+        actions={
+          manage ? (
+            <>
+              {!survey.is_published ? (
+                <Link href={`/surveys/${id}/edit`} className="btn-secondary">
+                  Edit
+                </Link>
+              ) : null}
+              <Link href={`/surveys/${id}/results`} className="btn-secondary">
+                Results
+              </Link>
+              <form action={setSurveyPublished}>
+                <input type="hidden" name="survey_id" value={id} />
+                <input type="hidden" name="publish" value={survey.is_published ? "0" : "1"} />
+                <FormSubmitButton pendingLabel="Updating…">
+                  {survey.is_published ? "Unpublish" : "Publish"}
+                </FormSubmitButton>
+              </form>
+            </>
+          ) : null
+        }
+      />
       {error ? <p className="alert-error mt-6">{error}</p> : null}
       {saved ? (
-        <p className="mt-6 rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink">
+        <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">
           Response saved.
         </p>
       ) : null}
 
-      {manage ? (
-        <form action={setSurveyPublished} className="mt-6">
-          <input type="hidden" name="survey_id" value={id} />
-          <input type="hidden" name="publish" value={survey.is_published ? "0" : "1"} />
-          <FormSubmitButton pendingLabel="Updating…">
-            {survey.is_published ? "Unpublish" : "Publish"}
-          </FormSubmitButton>
-        </form>
-      ) : null}
-
-      <section className="panel mt-8 p-6">
-        <h2 className="text-sm font-semibold tracking-tight">Questions</h2>
-        <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm">
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader
+          icon="/tasks"
+          title="Questions"
+          description={`${questions.length} ${questions.length === 1 ? "question" : "questions"}`}
+        />
+        <ol className="list-decimal space-y-2 pl-5 text-sm">
           {questions.map((question) => (
             <li key={question.id}>{question.prompt}</li>
           ))}

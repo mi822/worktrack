@@ -31,7 +31,7 @@ export function AppNav({
             onClick={onNavigate}
             className={active ? "nav-link-active" : "nav-link"}
           >
-            <NavIcon href={item.href} />
+            <NavIcon href={item.href} size="lg" />
             {item.label}
           </Link>
         );
@@ -39,9 +39,10 @@ export function AppNav({
       <form action={signOut} className="mt-auto border-t border-line/70 pt-4">
         <FormSubmitButton
           pendingLabel="Signing out…"
-          className="nav-link w-full justify-start text-muted hover:text-bad"
+          className="nav-link w-full justify-start hover:bg-bad/5 hover:text-bad"
         >
-          Sign out
+          <NavIcon href="logout" size="lg" />
+          Logout
         </FormSubmitButton>
       </form>
     </nav>

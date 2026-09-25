@@ -1,5 +1,6 @@
 import { QrManager } from "@/app/admin/qr/qr-manager";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/dashboard/ui";
 import { formatDateTime } from "@/lib/format-date";
 import { requireAdmin } from "@/lib/auth";
 import {
@@ -26,8 +27,12 @@ export default async function AdminQrPage() {
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">Admin</p>
-      <h1 className="page-title mt-1">Presence QR</h1>
+      <PageHeader
+        icon="/admin/qr"
+        caption="Admin"
+        title="Presence QR"
+        description="Generate the code people scan to record presence"
+      />
       {staleActive ? (
         <p className="alert-error mt-6">
           The current code is marked active but its validity has ended. Generate

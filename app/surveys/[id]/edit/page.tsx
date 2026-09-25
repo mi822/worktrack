@@ -1,7 +1,7 @@
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { AppShell } from "@/components/app-shell";
+import { BackLink, PageHeader, SectionHeader } from "@/components/dashboard/ui";
 import { requireProfile } from "@/lib/auth";
-import { ROLE_LABEL } from "@/lib/roles";
 import { addSurveyQuestion } from "@/lib/surveys/actions";
 import {
   canEditSurvey,
@@ -9,7 +9,6 @@ import {
   listSurveyQuestions,
 } from "@/lib/surveys/queries";
 import { parseIdParam } from "@/lib/work/parse";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 export default async function EditSurveyPage({
@@ -36,17 +35,16 @@ export default async function EditSurveyPage({
 
   return (
     <AppShell profile={profile}>
-      <p className="field-caption">{ROLE_LABEL[profile.role]}</p>
-      <h1 className="page-title mt-1">Edit {survey.title}</h1>
-      <p className="mt-4 text-sm">
-        <Link href={`/surveys/${id}`} className="text-muted underline-offset-2 hover:text-ink hover:underline">
-          Back
-        </Link>
-      </p>
+      <BackLink href={`/surveys/${id}`}>Back to survey</BackLink>
+      <PageHeader icon="/surveys" caption="Edit survey" title={survey.title} />
       {error ? <p className="alert-error mt-6">{error}</p> : null}
-      <section className="panel mt-8 p-6">
-        <h2 className="text-sm font-semibold tracking-tight">Questions</h2>
-        <ul className="mt-4 space-y-2 text-sm">
+      <section className="panel mt-6 p-5 sm:p-6">
+        <SectionHeader
+          icon="/tasks"
+          title="Questions"
+          description="Add questions before you publish"
+        />
+        <ul className="space-y-2 text-sm">
           {questions.map((question) => (
             <li key={question.id}>
               {question.prompt}{" "}
